@@ -225,8 +225,8 @@ volumes:
 
 ```bash
 # 1. Клонировать проект
-git clone https://github.com/yourusername/fileshare.git
-cd fileshare
+git clone https://github.com/yourusername/FileSharing.git
+cd FileSharing
 
 # 2. Создать .env
 cat > .env << EOF
