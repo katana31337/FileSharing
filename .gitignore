@@ -36,5 +36,8 @@ npm-debug.log*
 # Docker volumes
 postgres_data/
 uploads_data/
+
+# Production compose (contains sensitive data)
+# docker-compose.prod.yml
 .next/
 build/

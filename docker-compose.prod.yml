@@ -1,0 +1,79 @@
+# ==========================================
+# Docker Compose Production (Docker Hub)
+# ==========================================
+# Использует готовые образы из Docker Hub
+# Перед запуском создайте .env файл с переменными:
+#   DOMAIN=your-domain.com
+#   DB_PASSWORD=your_secure_password
+#   DB_USER=fileshare
+#   DB_NAME=fileshare
+# ==========================================
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-fileshare}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-fileshare}
+    volumes:
+      - postgres_/var/lib/postgresql/data
+      - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fileshare}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API Server (from Docker Hub)
+  backend:
+    image: ${DOCKER_USERNAME:-yourusername}/fileshare-backend:${VERSION:-latest}
+    expose:
+      - "3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fileshare}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-fileshare}
+      STORAGE_PROVIDER: local
+      STORAGE_PATH: /app/uploads
+      CORS_ORIGIN: https://${DOMAIN}
+    volumes:
+      - uploads_/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend + Nginx (from Docker Hub)
+  nginx:
+    image: ${DOCKER_USERNAME:-yourusername}/fileshare-frontend:${VERSION:-latest}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./data/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Let's Encrypt Certificate Bot
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+volumes:
+  postgres_
+  uploads_
