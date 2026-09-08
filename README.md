@@ -57,14 +57,29 @@
 ### Через Docker (рекомендуется)
 
 ```bash
-# Запустить все сервисы
+# 1. Сгенерировать self-signed сертификат (для разработки)
+./generate-self-signed.sh localhost
+
+# 2. Запустить все сервисы
 docker-compose up -d
 
-# Приложение доступно на http://localhost
-# API на http://localhost:3001/api
+# Приложение доступно на https://localhost
+# API на https://localhost/api
 ```
 
-### Локальная разработка
+### Production (с реальным доменом)
+
+```bash
+# 1. Получить Let's Encrypt сертификат
+./init-letsencrypt.sh your-domain.com admin@your-domain.com
+
+# 2. Запустить сервисы
+docker-compose up -d
+
+# Приложение доступно на https://your-domain.com
+```
+
+### Локальная разработка (без Docker)
 
 ```bash
 # 1. Запустить PostgreSQL
@@ -145,6 +160,74 @@ curl -X POST http://localhost:3001/api/files \
 ├── nginx.conf              # Nginx конфигурация
 └── README.md               # Этот файл
 ```
+
+## 🔒 HTTPS / SSL
+
+Сервис работает **только через HTTPS**. Nginx выступает как SSL terminator.
+
+### Архитектура HTTPS
+
+```
+┌─────────────┐     HTTPS      ┌──────────┐     HTTP      ┌──────────┐
+│   Browser   │ ──────────────▶│  Nginx   │ ─────────────▶│ Backend  │
+│  (Client)   │◀──────────────│  :443    │◀─────────────│  :3001   │
+└─────────────┘                └──────────┘               └──────────┘
+      ▲                              │
+      │                              ▼
+      │                        ┌──────────┐
+      └────────────────────────│  Certbot │ (Let's Encrypt)
+                               └──────────┘
+```
+
+### Варианты сертификатов
+
+| Вариант | Когда использовать | Команда |
+|---------|-------------------|---------|
+| **Self-signed** | Разработка, тестирование | `./generate-self-signed.sh` |
+| **Let's Encrypt** | Production с доменом | `./init-letsencrypt.sh domain.com` |
+
+### Self-Signed (разработка)
+
+```bash
+# Генерация сертификата
+./generate-self-signed.sh localhost
+
+# Браузер покажет предупреждение — это нормально для self-signed
+# Нажмите "Advanced" → "Proceed to localhost"
+```
+
+### Let's Encrypt (production)
+
+```bash
+# Требования:
+# - Публичный домен (например, files.example.com)
+# - DNS указывает на сервер
+# - Порты 80 и 443 открыты
+
+# Получение сертификата
+./init-letsencrypt.sh files.example.com admin@example.com
+
+# Продление (автоматически через certbot контейнер)
+docker-compose run --rm certbot renew
+docker-compose exec nginx nginx -s reload
+```
+
+### Security Headers
+
+Nginx добавляет следующие заголовки:
+- `Strict-Transport-Security` — HSTS (2 года)
+- `X-Frame-Options` — защита от clickjacking
+- `X-Content-Type-Options` — защита от MIME sniffing
+- `Content-Security-Policy` — защита от XSS
+- `Referrer-Policy` — контроль referrer
+- `Permissions-Policy` — ограничение доступа к API браузера
+
+### SSL/TLS настройки
+
+- Протоколы: TLS 1.2, TLS 1.3
+- Шифры: Modern (Mozilla Intermediate)
+- OCSP Stapling: включён
+- Session tickets: отключены (для forward secrecy)
 
 ## 🔧 Расширение
 

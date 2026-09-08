@@ -19,9 +19,12 @@ async function main() {
 
   const app = express();
 
+  // Trust proxy (Nginx terminates SSL and forwards X-Forwarded-Proto)
+  app.set('trust proxy', 1);
+
   // Middleware
   app.use(helmet());
-  app.use(cors({ origin: config.cors.origin }));
+  app.use(cors({ origin: config.cors.origin, credentials: true }));
   app.use(express.json({ limit: '2mb' }));
   app.use(requestLogger);
 
