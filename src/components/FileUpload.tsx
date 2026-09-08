@@ -1,0 +1,225 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { Upload, File, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShareItem, UploadOptions } from '../types';
+import { saveFile, formatFileSize } from '../services/storageService';
+
+interface FileUploadProps {
+  onUploadComplete: (item: ShareItem) => void;
+}
+
+export default function FileUpload({ onUploadComplete }: FileUploadProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedItems, setUploadedItems] = useState<ShareItem[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    setFiles(prev => [...prev, ...droppedFiles]);
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    setIsUploading(true);
+    const options: UploadOptions = { expiresInDays };
+    const newItems: ShareItem[] = [];
+
+    for (const file of files) {
+      const item = saveFile(file, options);
+      newItems.push(item);
+    }
+
+    setUploadedItems(prev => [...newItems, ...prev]);
+    newItems.forEach(item => onUploadComplete(item));
+    setFiles([]);
+    setIsUploading(false);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Upload Zone */}
+      <motion.div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
+          isDragging
+            ? 'border-indigo-500 bg-indigo-50 scale-[1.02]'
+            : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
+        }`}
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <motion.div
+          animate={{ y: isDragging ? -5 : 0 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className={`p-4 rounded-full ${isDragging ? 'bg-indigo-100' : 'bg-gray-100'}`}>
+            <Upload className={`w-8 h-8 ${isDragging ? 'text-indigo-600' : 'text-gray-500'}`} />
+          </div>
+          <div>
+            <p className="text-lg font-medium text-gray-700">
+              {isDragging ? 'Отпустите файлы здесь' : 'Перетащите файлы или нажмите для выбора'}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Максимум 100 МБ на файл
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Expiration Setting */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Срок хранения
+        </label>
+        <div className="flex gap-2 flex-wrap">
+          {[1, 3, 7, 14, 30].map(days => (
+            <button
+              key={days}
+              onClick={() => setExpiresInDays(days)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                expiresInDays === days
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Selected Files */}
+      <AnimatePresence>
+        {files.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3"
+          >
+            <h3 className="text-sm font-medium text-gray-700">
+              Выбрано файлов: {files.length}
+            </h3>
+            <div className="space-y-2">
+              {files.map((file, index) => (
+                <motion.div
+                  key={`${file.name}-${index}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200"
+                >
+                  <div className="p-2 bg-indigo-50 rounded-lg">
+                    <File className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                    <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                    className="p-1 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 text-red-500" />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+            <button
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isUploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  Загрузить {files.length} {files.length === 1 ? 'файл' : files.length < 5 ? 'файла' : 'файлов'}
+                </>
+              )}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Uploaded Items */}
+      <AnimatePresence>
+        {uploadedItems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-3"
+          >
+            <h3 className="text-sm font-medium text-green-700 flex items-center gap-2">
+              <Check className="w-4 h-4" />
+              Загружено успешно
+            </h3>
+            {uploadedItems.map(item => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-green-50 border border-green-200 rounded-xl p-4"
+              >
+                <p className="text-sm font-medium text-gray-800 mb-2">{item.name}</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-white px-3 py-2 rounded-lg border border-green-200 text-indigo-700 font-mono truncate">
+                    {window.location.origin}/s/{item.shortUrl}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(`${window.location.origin}/s/${item.shortUrl}`)}
+                    className="px-3 py-2 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
+                  >
+                    Копировать
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
