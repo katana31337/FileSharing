@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X, User } from 'lucide-react';
+import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X, User, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   getAdminSettings, 
@@ -24,6 +24,11 @@ export default function AdminPanel() {
   );
   const [logoUrl, setLogoUrl] = useState(settings.logoType === 'url' ? settings.logo : '');
   const [saveMessage, setSaveMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [needsInitialSetup, setNeedsInitialSetup] = useState(false);
+  const [initialLogin, setInitialLogin] = useState('');
+  const [initialPassword, setInitialPassword] = useState('');
+  const [showInitialPassword, setShowInitialPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Проверяем, совпадает ли путь с секретным
@@ -34,9 +39,15 @@ export default function AdminPanel() {
     if (!savedSettings.adminSecretPath || savedSettings.adminSecretPath === 'admin') {
       // Инициализируем секретный путь из URL при первом посещении
       if (secretPath && secretPath !== 'admin') {
-        const newSettings = { ...savedSettings, adminSecretPath: secretPath };
-        saveAdminSettings(newSettings);
-        setSettings(newSettings);
+        // Проверяем, есть ли уже сохранённые настройки (не дефолтные)
+        const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
+        if (!hasSavedSettings) {
+          // Первый визит - инициализируем только секретный путь
+          // Логин и пароль остаются дефолтными, пользователь может их изменить позже
+          const newSettings = { ...savedSettings, adminSecretPath: secretPath };
+          saveAdminSettings(newSettings);
+          setSettings(newSettings);
+        }
       }
       return true;
     }
@@ -50,11 +61,66 @@ export default function AdminPanel() {
       return;
     }
 
+    // Проверяем, нужна ли первичная настройка
+    const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
+    if (!hasSavedSettings && secretPath && secretPath !== 'admin') {
+      setNeedsInitialSetup(true);
+      return;
+    }
+
     const auth = sessionStorage.getItem('admin_auth');
     if (auth === 'true') {
       setIsAuthenticated(true);
     }
   }, [secretPath, navigate]);
+
+  const handleInitialSetup = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Валидация логина
+    if (initialLogin.length < 3) {
+      alert('Логин должен содержать минимум 3 символа');
+      return;
+    }
+
+    // Валидация пароля
+    if (initialPassword.length < 12) {
+      alert('Пароль должен содержать минимум 12 символов');
+      return;
+    }
+
+    if (!/[a-z]/.test(initialPassword)) {
+      alert('Пароль должен содержать строчные буквы (a-z)');
+      return;
+    }
+
+    if (!/[A-Z]/.test(initialPassword)) {
+      alert('Пароль должен содержать заглавные буквы (A-Z)');
+      return;
+    }
+
+    if (!/[0-9]/.test(initialPassword)) {
+      alert('Пароль должен содержать цифры (0-9)');
+      return;
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(initialPassword)) {
+      alert('Пароль должен содержать спецсимволы (!@#$%^&* и др.)');
+      return;
+    }
+
+    // Сохраняем настройки
+    const currentSettings = getAdminSettings();
+    const newSettings = {
+      ...currentSettings,
+      adminLogin: initialLogin,
+      adminPassword: initialPassword,
+    };
+    saveAdminSettings(newSettings);
+    setSettings(newSettings);
+    setNeedsInitialSetup(false);
+    alert('Настройки сохранены! Теперь войдите с новыми учётными данными.');
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +128,16 @@ export default function AdminPanel() {
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_auth', 'true');
     } else {
-      alert('Неверный логин или пароль');
+      const currentSettings = getAdminSettings();
+      alert(
+        `Неверный логин или пароль\n\n` +
+        `Текущие настройки:\n` +
+        `Логин: ${currentSettings.adminLogin}\n` +
+        `Пароль: ${currentSettings.adminPassword}\n\n` +
+        `Если это первая установка, используйте данные по умолчанию:\n` +
+        `Логин: admin\n` +
+        `Пароль: admin123`
+      );
     }
   };
 
@@ -185,6 +260,91 @@ export default function AdminPanel() {
     );
   }
 
+  // Первичная настройка админки
+  if (needsInitialSetup) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <Settings className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Первичная настройка</h1>
+              <p className="text-sm text-gray-500">Создайте учётные данные администратора</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleInitialSetup} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Логин
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={initialLogin}
+                  onChange={(e) => setInitialLogin(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  placeholder="Минимум 3 символа"
+                  autoFocus
+                  autoComplete="username"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Пароль
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showInitialPassword ? "text" : "password"}
+                  value={initialPassword}
+                  onChange={(e) => setInitialPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  placeholder="Минимум 12 символов"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowInitialPassword(!showInitialPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showInitialPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <div className="mt-2 text-xs text-gray-500 space-y-1">
+                <p>Требования к паролю:</p>
+                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                  <li className={initialPassword.length >= 12 ? 'text-green-600' : ''}>Минимум 12 символов</li>
+                  <li className={/[a-z]/.test(initialPassword) ? 'text-green-600' : ''}>Строчные буквы (a-z)</li>
+                  <li className={/[A-Z]/.test(initialPassword) ? 'text-green-600' : ''}>Заглавные буквы (A-Z)</li>
+                  <li className={/[0-9]/.test(initialPassword) ? 'text-green-600' : ''}>Цифры (0-9)</li>
+                  <li className={/[^a-zA-Z0-9]/.test(initialPassword) ? 'text-green-600' : ''}>Спецсимволы (!@#$% и др.)</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
+            >
+              Создать учётные данные
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
@@ -229,13 +389,26 @@ export default function AdminPanel() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                   placeholder="Введите пароль"
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
 
