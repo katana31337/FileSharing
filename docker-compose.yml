@@ -1,7 +1,6 @@
 # ==========================================
 # Docker Compose — FileShare (HTTPS)
 # ==========================================
-version: '3.8'
 
 services:
   # PostgreSQL Database
