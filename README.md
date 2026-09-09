@@ -8,7 +8,9 @@
   - [Стек технологий](#стек-технологий)
   - [Принципы SOLID в архитектуре](#принципы-solid-в-архитектуре)
 - [🚀 Быстрый старт](#-быстрый-старт)
-  - [Через Docker (рекомендуется)](#через-docker-рекомендуется)
+  - [Автоматическая установка (рекомендуется)](#автоматическая-установка-рекомендуется)
+  - [Удаление](#удаление)
+  - [Через Docker (вручную)](#через-docker-вручную)
   - [Production (с реальным доменом)](#production-с-реальным-доменом)
   - [Локальная разработка (без Docker)](#локальная-разработка-без-docker)
 - [🔧 Инфраструктура и конфигурация](#-инфраструктура-и-конфигурация)
@@ -87,7 +89,36 @@
 
 ## 🚀 Быстрый старт
 
-### Через Docker (рекомендуется)
+### Автоматическая установка (рекомендуется)
+
+```bash
+# Один командой
+curl -sSL https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh | sudo bash
+
+# Или скачайте и запустите
+wget https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Скрипт автоматически:
+- ✅ Проверит зависимости (Docker, Docker Compose, Git, OpenSSL)
+- ✅ Спросит домен и тип SSL сертификата
+- ✅ Сгенерирует безопасные пароли
+- ✅ Создаст `.env` файл
+- ✅ Получит SSL сертификат (Let's Encrypt или self-signed)
+- ✅ Запустит все сервисы
+
+### Удаление
+
+```bash
+# Скачать и запустить
+wget https://raw.githubusercontent.com/yourusername/FileSharing/main/uninstall.sh
+chmod +x uninstall.sh
+sudo ./uninstall.sh
+```
+
+### Через Docker (вручную)
 
 ```bash
 # 1. Сгенерировать self-signed сертификат (для разработки)
