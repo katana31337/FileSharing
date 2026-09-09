@@ -8,6 +8,9 @@
 
 set -e
 
+# Error handler
+trap 'print_error "Ошибка на строке $LINENO. Выход."' ERR
+
 # Fix stdin when running via curl | bash
 # If stdin is not a terminal (piped), redirect from /dev/tty
 if [ ! -t 0 ]; then
@@ -417,7 +420,7 @@ setup_ssl() {
         openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
             -keyout ./data/certbot/conf/privkey.pem \
             -out ./data/certbot/conf/fullchain.pem \
-            -subj "/CN=localhost" 2>/dev/null
+            -subj "/CN=localhost"
         
         # Copy temp cert to ssl directory for nginx
         cp ./data/certbot/conf/privkey.pem ./ssl/privkey.pem
@@ -464,13 +467,13 @@ setup_ssl() {
         
         # Generate private key
         print_info "Создание приватного ключа..."
-        openssl genrsa -out ./ssl/privkey.pem 2048 2>/dev/null
+        openssl genrsa -out ./ssl/privkey.pem 2048
         
         # Generate CSR (Certificate Signing Request)
         print_info "Создание запроса на подпись сертификата..."
         openssl req -new -key ./ssl/privkey.pem \
             -out ./ssl/cert.csr \
-            -subj "/C=US/ST=State/L=City/O=FileShare/CN=$DOMAIN" 2>/dev/null
+            -subj "/C=US/ST=State/L=City/O=FileShare/CN=$DOMAIN"
         
         # Create extensions file for SAN (Subject Alternative Names)
         print_info "Создание расширений сертификата..."
@@ -490,9 +493,9 @@ EOF
         # Generate self-signed certificate
         print_info "Генерация самоподписанного сертификата..."
         openssl x509 -req -in ./ssl/cert.csr \
-            -CA ./ssl/privkey.pem -CAkey ./ssl/privkey.pem \
-            -CAcreateserial -out ./ssl/fullchain.pem \
-            -days 365 -sha256 -extfile ./ssl/cert.ext 2>/dev/null
+            -signkey ./ssl/privkey.pem \
+            -out ./ssl/fullchain.pem \
+            -days 365 -sha256 -extfile ./ssl/cert.ext
         
         # Clean up temporary files
         rm -f ./ssl/cert.csr ./ssl/cert.ext ./ssl/privkey.srl
