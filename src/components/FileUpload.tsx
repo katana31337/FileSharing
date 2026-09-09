@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, File as FileIcon, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShareItem, UploadOptions } from '../types';
 import { saveFile, formatFileSize } from '../services/storageService';
+import { getAdminSettings } from '../services/adminService';
 
 interface FileUploadProps {
   onUploadComplete: (item: ShareItem) => void;
@@ -14,7 +15,14 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [expiresInDays, setExpiresInDays] = useState(7);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedItems, setUploadedItems] = useState<ShareItem[]>([]);
+  const [adminSettings, setAdminSettings] = useState(getAdminSettings());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const settings = getAdminSettings();
+    setAdminSettings(settings);
+    setExpiresInDays(settings.defaultExpirationDays);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -26,16 +34,31 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     setIsDragging(false);
   }, []);
 
+  const validateFiles = (fileList: File[]): File[] => {
+    const validFiles: File[] = [];
+    for (const file of fileList) {
+      if (file.size > adminSettings.maxFileSize) {
+        alert(`Файл "${file.name}" превышает максимальный размер ${formatFileSize(adminSettings.maxFileSize)}`);
+      } else {
+        validFiles.push(file);
+      }
+    }
+    return validFiles;
+  };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFiles = Array.from(e.dataTransfer.files);
-    setFiles(prev => [...prev, ...droppedFiles]);
-  }, []);
+    const validFiles = validateFiles(droppedFiles);
+    setFiles(prev => [...prev, ...validFiles]);
+  }, [adminSettings.maxFileSize]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+      const selectedFiles = Array.from(e.target.files);
+      const validFiles = validateFiles(selectedFiles);
+      setFiles(prev => [...prev, ...validFiles]);
     }
   };
 
@@ -110,20 +133,42 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           Срок хранения
         </label>
         <div className="flex gap-2 flex-wrap">
-          {[1, 3, 7, 14, 30].map(days => (
-            <button
-              key={days}
-              onClick={() => setExpiresInDays(days)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                expiresInDays === days
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
-            </button>
-          ))}
+          {(() => {
+            const options: number[] = [];
+            const presets = [1, 3, 7, 14, 30];
+            
+            for (const preset of presets) {
+              if (preset >= adminSettings.minExpirationDays && preset <= adminSettings.maxExpirationDays) {
+                options.push(preset);
+              }
+            }
+            
+            // Если ни один пресет не подходит, добавляем минимальное и максимальное значения
+            if (options.length === 0) {
+              options.push(adminSettings.minExpirationDays);
+              if (adminSettings.maxExpirationDays !== adminSettings.minExpirationDays) {
+                options.push(adminSettings.maxExpirationDays);
+              }
+            }
+            
+            return options.map(days => (
+              <button
+                key={days}
+                onClick={() => setExpiresInDays(days)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  expiresInDays === days
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
+              </button>
+            ));
+          })()}
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Доступно: от {adminSettings.minExpirationDays} до {adminSettings.maxExpirationDays} дней
+        </p>
       </div>
 
       {/* Selected Files */}
