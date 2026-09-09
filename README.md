@@ -799,7 +799,7 @@ npm run test:coverage
 - Push в ветки `main` или `develop`
 - Создании Pull Request в `main` или `develop`
 
-GitHub Actions запускает тесты на Node.js 20.x и 22.x, что гарантирует совместимость с разными версиями Node.
+GitHub Actions запускает тесты на Node.js 22.x и 24.x, что гарантирует совместимость с разными версиями Node.
 
 **Статус тестов:**
 - Проверить статус можно на вкладке **Actions** в GitHub репозитории

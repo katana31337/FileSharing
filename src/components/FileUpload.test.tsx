@@ -80,16 +80,12 @@ describe('FileUpload Component', () => {
 
   it('should handle file selection', async () => {
     const user = userEvent.setup();
-    render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
+    const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
-    const input = screen.getByRole('button', { name: /перетащите файлы/i });
     
-    // Click on upload zone to trigger file input
-    await user.click(input);
-    
-    // Find the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Find the hidden file input directly
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
     
     expect(screen.getByText('test.txt')).toBeInTheDocument();
@@ -98,17 +94,13 @@ describe('FileUpload Component', () => {
 
   it('should show error toast when file exceeds max size', async () => {
     const user = userEvent.setup();
-    render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
+    const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     // Create file larger than 10 MB
     const largeFile = new File([new ArrayBuffer(11 * 1024 * 1024)], 'large.txt', { type: 'text/plain' });
-    const uploadZone = screen.getByRole('button', { name: /перетащите файлы/i });
     
-    // Click on upload zone to trigger file input
-    await user.click(uploadZone);
-    
-    // Find the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Find the hidden file input directly
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, largeFile);
     
     await waitFor(() => {
@@ -118,16 +110,12 @@ describe('FileUpload Component', () => {
 
   it('should upload file and show success message', async () => {
     const user = userEvent.setup();
-    render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
+    const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
-    const uploadZone = screen.getByRole('button', { name: /перетащите файлы/i });
     
-    // Click on upload zone to trigger file input
-    await user.click(uploadZone);
-    
-    // Find the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Find the hidden file input directly
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
     
     const uploadButton = screen.getByText('Загрузить 1 файл');
@@ -141,16 +129,12 @@ describe('FileUpload Component', () => {
 
   it('should remove file from list', async () => {
     const user = userEvent.setup();
-    render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
+    const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
-    const uploadZone = screen.getByRole('button', { name: /перетащите файлы/i });
     
-    // Click on upload zone to trigger file input
-    await user.click(uploadZone);
-    
-    // Find the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Find the hidden file input directly
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
     
     expect(screen.getByText('test.txt')).toBeInTheDocument();
@@ -172,16 +156,12 @@ describe('FileUpload Component', () => {
       configurable: true,
     });
     
-    render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
+    const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
-    const uploadZone = screen.getByRole('button', { name: /перетащите файлы/i });
     
-    // Click on upload zone to trigger file input
-    await user.click(uploadZone);
-    
-    // Find the hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Find the hidden file input directly
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
     
     const uploadButton = screen.getByText('Загрузить 1 файл');

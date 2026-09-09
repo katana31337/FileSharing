@@ -189,7 +189,9 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/неверный логин или пароль/i)).toBeInTheDocument();
+        expect(global.alert).toHaveBeenCalled();
+        const alertCall = (global.alert as any).mock.calls[0][0];
+        expect(alertCall).toMatch(/неверный логин или пароль/i);
       });
     });
 
@@ -210,7 +212,9 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/неверный логин или пароль/i)).toBeInTheDocument();
+        expect(global.alert).toHaveBeenCalled();
+        const alertCall = (global.alert as any).mock.calls[0][0];
+        expect(alertCall).toMatch(/неверный логин или пароль/i);
       });
     });
 
