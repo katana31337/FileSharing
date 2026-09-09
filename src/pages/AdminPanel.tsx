@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
@@ -14,6 +14,7 @@ import {
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const { secretPath } = useParams<{ secretPath: string }>();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -25,12 +26,35 @@ export default function AdminPanel() {
   const [saveMessage, setSaveMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Проверяем, совпадает ли путь с секретным
+  const isValidSecretPath = () => {
+    const savedSettings = getAdminSettings();
+    // Если секретный путь не настроен (дефолтный), разрешаем доступ
+    // и инициализируем настройки из URL
+    if (!savedSettings.adminSecretPath || savedSettings.adminSecretPath === 'admin') {
+      // Инициализируем секретный путь из URL при первом посещении
+      if (secretPath && secretPath !== 'admin') {
+        const newSettings = { ...savedSettings, adminSecretPath: secretPath };
+        saveAdminSettings(newSettings);
+        setSettings(newSettings);
+      }
+      return true;
+    }
+    return secretPath === savedSettings.adminSecretPath;
+  };
+
   useEffect(() => {
+    // Проверяем секретный путь
+    if (!isValidSecretPath()) {
+      navigate('/');
+      return;
+    }
+
     const auth = sessionStorage.getItem('admin_auth');
     if (auth === 'true') {
       setIsAuthenticated(true);
     }
-  }, []);
+  }, [secretPath, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,6 +162,28 @@ export default function AdminPanel() {
     setLogin('');
     setPassword('');
   };
+
+  // Если путь не совпадает с секретным - показываем 404
+  if (!isValidSecretPath()) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
+          <p className="text-xl text-gray-600 mb-6">Страница не найдена</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+          >
+            На главную
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
