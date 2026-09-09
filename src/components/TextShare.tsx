@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Copy, Check, Code } from 'lucide-react';
 import { TextSnippet, UploadOptions } from '../types';
 import { saveTextSnippet } from '../services/storageService';
+import { getAdminSettings } from '../services/adminService';
 
 interface TextShareProps {
   onShareComplete: (snippet: TextSnippet) => void;
@@ -31,6 +32,13 @@ export default function TextShare({ onShareComplete }: TextShareProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [sharedSnippet, setSharedSnippet] = useState<TextSnippet | null>(null);
   const [copied, setCopied] = useState(false);
+  const [adminSettings, setAdminSettings] = useState(getAdminSettings());
+
+  useEffect(() => {
+    const settings = getAdminSettings();
+    setAdminSettings(settings);
+    setExpiresInDays(settings.defaultExpirationDays);
+  }, []);
 
   const handleShare = () => {
     if (!content.trim()) return;
@@ -124,20 +132,41 @@ export default function TextShare({ onShareComplete }: TextShareProps) {
                 Срок хранения
               </label>
               <div className="flex gap-2 flex-wrap">
-                {[1, 3, 7, 14, 30].map(days => (
-                  <button
-                    key={days}
-                    onClick={() => setExpiresInDays(days)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      expiresInDays === days
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
-                  </button>
-                ))}
+                {(() => {
+                  const options: number[] = [];
+                  const presets = [1, 3, 7, 14, 30];
+                  
+                  for (const preset of presets) {
+                    if (preset >= adminSettings.minExpirationDays && preset <= adminSettings.maxExpirationDays) {
+                      options.push(preset);
+                    }
+                  }
+                  
+                  if (options.length === 0) {
+                    options.push(adminSettings.minExpirationDays);
+                    if (adminSettings.maxExpirationDays !== adminSettings.minExpirationDays) {
+                      options.push(adminSettings.maxExpirationDays);
+                    }
+                  }
+                  
+                  return options.map(days => (
+                    <button
+                      key={days}
+                      onClick={() => setExpiresInDays(days)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        expiresInDays === days
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
+                    </button>
+                  ));
+                })()}
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Доступно: от {adminSettings.minExpirationDays} до {adminSettings.maxExpirationDays} дней
+              </p>
             </div>
 
             {/* Share Button */}
