@@ -4,8 +4,8 @@
 # Использует готовые образы из Docker Hub
 # Перед запуском создайте .env файл с переменными:
 #   DOMAIN=your-domain.com
-#   DB_PASSWORD=your_secure_password
-#   DB_USER=fileshare
+#   DB_USER=<generated_by_install_script>
+#   DB_PASSWORD=<generated_by_install_script>
 #   DB_NAME=fileshare
 # ==========================================
 
@@ -14,14 +14,14 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${DB_USER:-fileshare}
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-fileshare}
     volumes:
       - postgres_/var/lib/postgresql/data
       - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fileshare}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,7 +37,7 @@ services:
       PORT: 3001
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-fileshare}
+      DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-fileshare}
       STORAGE_PROVIDER: local

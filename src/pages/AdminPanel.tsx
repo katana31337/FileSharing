@@ -31,40 +31,39 @@ export default function AdminPanel() {
   const [showInitialPassword, setShowInitialPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Проверяем, совпадает ли путь с секретным
-  const isValidSecretPath = () => {
-    const savedSettings = getAdminSettings();
-    // Если секретный путь не настроен (дефолтный), разрешаем доступ
-    // и инициализируем настройки из URL
-    if (!savedSettings.adminSecretPath || savedSettings.adminSecretPath === 'admin') {
-      // Инициализируем секретный путь из URL при первом посещении
-      if (secretPath && secretPath !== 'admin') {
-        // Проверяем, есть ли уже сохранённые настройки (не дефолтные)
-        const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
-        if (!hasSavedSettings) {
-          // Первый визит - инициализируем только секретный путь
-          // Логин и пароль остаются дефолтными, пользователь может их изменить позже
-          const newSettings = { ...savedSettings, adminSecretPath: secretPath };
-          saveAdminSettings(newSettings);
-          setSettings(newSettings);
-        }
-      }
+  // Проверяем, нужна ли первичная настройка
+  const checkInitialSetup = () => {
+    const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
+    if (!hasSavedSettings && secretPath && secretPath !== 'admin') {
       return true;
     }
+    return false;
+  };
+
+  // Проверяем, совпадает ли путь с секретным
+  const isValidSecretPath = () => {
+    const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
+    
+    // Если настроек нет ещё - разрешаем доступ (покажем форму настройки)
+    if (!hasSavedSettings) {
+      return true;
+    }
+    
+    // Если настройки есть - проверяем совпадение пути
+    const savedSettings = getAdminSettings();
     return secretPath === savedSettings.adminSecretPath;
   };
 
   useEffect(() => {
-    // Проверяем секретный путь
-    if (!isValidSecretPath()) {
-      navigate('/');
+    // Проверяем, нужна ли первичная настройка
+    if (checkInitialSetup()) {
+      setNeedsInitialSetup(true);
       return;
     }
 
-    // Проверяем, нужна ли первичная настройка
-    const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
-    if (!hasSavedSettings && secretPath && secretPath !== 'admin') {
-      setNeedsInitialSetup(true);
+    // Проверяем секретный путь
+    if (!isValidSecretPath()) {
+      navigate('/');
       return;
     }
 
@@ -109,12 +108,13 @@ export default function AdminPanel() {
       return;
     }
 
-    // Сохраняем настройки
+    // Сохраняем настройки с секретным путём из URL
     const currentSettings = getAdminSettings();
     const newSettings = {
       ...currentSettings,
       adminLogin: initialLogin,
       adminPassword: initialPassword,
+      adminSecretPath: secretPath || 'admin',
     };
     saveAdminSettings(newSettings);
     setSettings(newSettings);
@@ -239,7 +239,8 @@ export default function AdminPanel() {
   };
 
   // Если путь не совпадает с секретным - показываем 404
-  if (!isValidSecretPath()) {
+  // Но только если есть сохранённые настройки (иначе покажем форму настройки)
+  if (!needsInitialSetup && !isValidSecretPath()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
         <motion.div

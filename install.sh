@@ -77,6 +77,77 @@ generate_password() {
     openssl rand -base64 $((length * 3 / 4)) | tr -d '\n=' | head -c $length
 }
 
+# Generate random name in Docker style (adjective_noun_number)
+generate_random_name() {
+    local adjectives=(
+        "adoring" "affectionate" "agitated" "amazing" "angry" "awesome"
+        "beautiful" "blissful" "bold" "brave" "busy" "charming"
+        "clever" "compassionate" "competent" "confident" "cool" "cranky"
+        "crazy" "dazzling" "determined" "dreamy" "eager" "ecstatic"
+        "elastic" "elated" "elegant" "eloquent" "epic" "exciting"
+        "fervent" "festive" "flamboyant" "focused" "friendly" "frosty"
+        "funny" "gallant" "gifted" "goofy" "gracious" "happy"
+        "hardcore" "heuristic" "hopeful" "hungry" "inspiring" "intelligent"
+        "interesting" "jolly" "jovial" "keen" "kind" "laughing"
+        "loving" "lucid" "magical" "modest" "musing" "mystifying"
+        "naughty" "nervous" "nice" "nifty" "nostalgic" "objective"
+        "optimistic" "peaceful" "pensive" "practical" "quirky" "quizzical"
+        "recursing" "relaxed" "reverent" "romantic" "serene" "sharp"
+        "silly" "sleepy" "stoic" "strange" "stupefied" "suspicious"
+        "sweet" "tender" "thirsty" "trusting" "unruffled" "upbeat"
+        "vibrant" "vigilant" "vigorous" "wizardly" "wonderful" "youthful"
+        "zealous" "zen"
+    )
+    
+    local nouns=(
+        "albattani" "allen" "almeida" "antonelli" "archimedes" "ardinghelli"
+        "aryabhata" "austin" "babbage" "banach" "banzai" "bardeen"
+        "bartik" "bassi" "beaver" "bell" "benz" "bhabha"
+        "bhaskara" "blackburn" "blackwell" "bohr" "booth" "borg"
+        "bose" "boyd" "brahmagupta" "brattain" "brown" "buck"
+        "burnell" "cannon" "carson" "cartwright" "carver" "cerf"
+        "chandrasekhar" "chaplygin" "chatelet" "chatterjee" "chebyshev" "cohen"
+        "chaum" "clarke" "colden" "cori" "cray" "curran"
+        "curie" "darwin" "davinci" "dewdney" "dhawan" "diffie"
+        "dijkstra" "dirac" "driscoll" "dubinsky" "easley" "edison"
+        "einstein" "elbakyan" "elgamal" "elion" "ellis" "engelbart"
+        "euclid" "euler" "faraday" "feistel" "fermat" "fermi"
+        "feynman" "franklin" "gagarin" "galileo" "galois" "ganguly"
+        "gates" "gauss" "germain" "goldberg" "goldstine" "goldwasser"
+        "golick" "goodall" "gould" "greider" "grothendieck" "haibt"
+        "hamilton" "haslett" "hawking" "hellman" "heisenberg" "hermann"
+        "herschel" "hertz" "heyrovsky" "hodgkin" "hofstadter" "hoover"
+        "hopper" "hugle" "hypatia" "ishizaka" "jackson" "jang"
+        "jennings" "jepsen" "johnson" "joliot" "jones" "kalam"
+        "kapitsa" "kare" "keldysh" "keller" "kepler" "khayyam"
+        "khorana" "kilby" "kirchhoff" "knuth" "kowalevski" "lalande"
+        "lamarr" "lamport" "leakey" "leavitt" "lederberg" "lehmann"
+        "lewin" "lichterman" "liskov" "lovelace" "lumiere" "mahavira"
+        "margulis" "matsumoto" "maxwell" "mayer" "mccarthy" "mcclintock"
+        "mclaren" "mclean" "mcnulty" "mendel" "mendeleev" "meitner"
+        "meninsky" "merkle" "mestorf" "minsky" "mirzakhani" "montalcini"
+        "moore" "morse" "murdock" "moser" "napier" "nash"
+        "neumann" "newton" "nightingale" "nobel" "noether" "northcutt"
+        "noyce" "panini" "pare" "pascal" "pasteur" "payne"
+        "perlman" "pike" "poincare" "poitras" "proskuriakova" "ptolemy"
+        "raman" "ramanujan" "ride" "ritchie" "rhodes" "robinson"
+        "roentgen" "rosalind" "rubin" "saha" "sammet" "sanderson"
+        "satoshi" "shamir" "shannon" "shaw" "shirley" "shockley"
+        "shtern" "snyder" "solomon" "spence" "stonebraker" "sutherland"
+        "swanson" "swartz" "swirles" "taussig" "tereshkova" "tesla"
+        "tharp" "thompson" "torvalds" "tu" "turing" "varahamihira"
+        "vaughan" "villani" "visvesvaraya" "volhard" "wescoff" "wilbur"
+        "wiles" "williams" "williamson" "wilson" "wing" "wozniak"
+        "wright" "wu" "yalow" "yang" "zhukovsky"
+    )
+    
+    local adj_idx=$((RANDOM % ${#adjectives[@]}))
+    local noun_idx=$((RANDOM % ${#nouns[@]}))
+    local number=$((RANDOM % 1000))
+    
+    echo "${adjectives[$adj_idx]}_${nouns[$noun_idx]}_$number"
+}
+
 # Check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -281,11 +352,13 @@ ask_questions() {
     done
     echo ""
     
-    # Generate passwords
-    print_info "Генерация пароля для базы данных..."
+    # Generate database credentials
+    print_info "Генерация учётных данных для базы данных..."
+    DB_USER=$(generate_random_name)
     DB_PASSWORD=$(generate_password 32)
     
     print_success "Все пароли созданы"
+    print_info "Пользователь БД: $DB_USER"
 }
 
 # Create installation directory
@@ -320,13 +393,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: \${DB_USER:-fileshare}
+      POSTGRES_USER: \${DB_USER}
       POSTGRES_PASSWORD: \${DB_PASSWORD}
       POSTGRES_DB: \${DB_NAME:-fileshare}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \${DB_USER:-fileshare}"]
+      test: ["CMD-SHELL", "pg_isready -U \${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -341,7 +414,7 @@ services:
       PORT: 3001
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: \${DB_USER:-fileshare}
+      DB_USER: \${DB_USER}
       DB_PASSWORD: \${DB_PASSWORD}
       DB_NAME: \${DB_NAME:-fileshare}
       STORAGE_PROVIDER: local
@@ -521,7 +594,7 @@ create_env_file() {
 DOMAIN=$DOMAIN
 
 # Database
-DB_USER=fileshare
+DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 DB_NAME=fileshare
 
@@ -691,7 +764,7 @@ print_summary() {
     echo ""
     echo -e "${CYAN}🗄️  База данных:${NC}"
     echo ""
-    echo -e "   User:     ${YELLOW}fileshare${NC}"
+    echo -e "   User:     ${YELLOW}$DB_USER${NC}"
     echo -e "   Password: ${YELLOW}$DB_PASSWORD${NC}"
     echo ""
     echo -e "${CYAN}📋 Полезные команды:${NC}"
