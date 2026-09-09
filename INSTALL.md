@@ -50,16 +50,19 @@ sudo ./install.sh
 
 [2/7] Настройка параметров...
 
-Введите домен для FileShare (например: files.example.com):
-> files.example.com
-
 Какой SSL сертификат вы хотите использовать?
-  1) Let's Encrypt (рекомендуется для production)
-  2) Self-signed (для разработки/тестирования)
+  1) Let's Encrypt (для production с публичным доменом)
+  2) Self-signed (для локальной сети, IP-адреса или разработки)
 
 Выберите [1-2]: 1
 
-Введите email для Let's Encrypt:
+Введите публичный домен для FileShare
+⚠️  Домен должен указывать на этот сервер и быть доступен из интернета
+   Например: files.example.com
+
+> files.example.com
+
+Введите email для Let's Encrypt (для уведомлений о сертификате):
 > admin@example.com
 
 ✓ Пароли сгенерированы
