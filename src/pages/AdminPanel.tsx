@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X } from 'lucide-react';
+import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   getAdminSettings, 
   saveAdminSettings, 
   resetAdminSettings,
-  validateAdminPassword,
+  validateAdminCredentials,
   formatFileSize,
   parseFileSize,
   type AdminSettings 
@@ -15,6 +15,7 @@ import {
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [settings, setSettings] = useState<AdminSettings>(getAdminSettings());
   const [maxFileSizeInput, setMaxFileSizeInput] = useState(
@@ -33,11 +34,11 @@ export default function AdminPanel() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateAdminPassword(password)) {
+    if (validateAdminCredentials(login, password)) {
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_auth', 'true');
     } else {
-      alert('Неверный пароль');
+      alert('Неверный логин или пароль');
     }
   };
 
@@ -134,6 +135,7 @@ export default function AdminPanel() {
   const handleLogout = () => {
     sessionStorage.removeItem('admin_auth');
     setIsAuthenticated(false);
+    setLogin('');
     setPassword('');
   };
 
@@ -151,26 +153,44 @@ export default function AdminPanel() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Админ-панель</h1>
-              <p className="text-sm text-gray-500">Введите пароль для доступа</p>
+              <p className="text-sm text-gray-500">Введите учётные данные</p>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Логин
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  placeholder="Введите логин"
+                  autoFocus
+                  autoComplete="username"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Пароль
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                placeholder="Введите пароль"
-                autoFocus
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Пароль по умолчанию: admin123
-              </p>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  placeholder="Введите пароль"
+                  autoComplete="current-password"
+                />
+              </div>
             </div>
 
             <button

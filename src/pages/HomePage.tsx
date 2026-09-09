@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileUp, FileText, Clock, Shield, Zap, History, Trash2, Settings } from 'lucide-react';
+import { FileUp, FileText, Clock, Shield, Zap, History, Trash2 } from 'lucide-react';
 import FileUpload from '../components/FileUpload';
 import TextShare from '../components/TextShare';
 import { ShareItem, TextSnippet } from '../types';
@@ -11,7 +10,6 @@ import { getAdminSettings } from '../services/adminService';
 type Tab = 'files' | 'text' | 'history';
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('files');
   const [uploadedFiles, setUploadedFiles] = useState<ShareItem[]>([]);
   const [sharedTexts, setSharedTexts] = useState<TextSnippet[]>([]);
@@ -81,13 +79,6 @@ export default function HomePage() {
               <Clock className="w-3 h-3" />
               <span>До 30 дней</span>
             </div>
-            <button
-              onClick={() => navigate('/admin')}
-              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Админ-панель"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </header>

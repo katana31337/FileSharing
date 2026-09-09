@@ -3,19 +3,24 @@ export interface AdminSettings {
   minExpirationDays: number;
   maxExpirationDays: number;
   defaultExpirationDays: number;
+  adminLogin: string;
   adminPassword: string;
+  adminSecretPath: string; // Секретный путь для доступа к админке
   logo: string; // Data URL (base64) или URL логотипа
   logoType: 'none' | 'file' | 'url'; // Тип источника логотипа
 }
 
 const SETTINGS_KEY = 'fileshare_admin_settings';
 
+// Настройки по умолчанию (используются если не заданы через install.sh)
 const DEFAULT_SETTINGS: AdminSettings = {
   maxFileSize: 100 * 1024 * 1024, // 100 MB
   minExpirationDays: 1,
   maxExpirationDays: 30,
   defaultExpirationDays: 7,
-  adminPassword: 'admin123', // Временный пароль, нужно изменить!
+  adminLogin: 'admin',
+  adminPassword: 'admin123',
+  adminSecretPath: 'admin',
   logo: '',
   logoType: 'none',
 };
@@ -44,9 +49,14 @@ export function resetAdminSettings(): void {
   localStorage.removeItem(SETTINGS_KEY);
 }
 
-export function validateAdminPassword(password: string): boolean {
+export function validateAdminCredentials(login: string, password: string): boolean {
   const settings = getAdminSettings();
-  return password === settings.adminPassword;
+  return login === settings.adminLogin && password === settings.adminPassword;
+}
+
+export function getAdminSecretPath(): string {
+  const settings = getAdminSettings();
+  return settings.adminSecretPath;
 }
 
 export function formatFileSize(bytes: number): string {
