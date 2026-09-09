@@ -206,10 +206,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
                 <p className="text-sm font-medium text-gray-800 mb-2">{item.name}</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-xs bg-white px-3 py-2 rounded-lg border border-green-200 text-indigo-700 font-mono truncate">
-                    {window.location.origin}/s/{item.shortUrl}
+                    {window.location.origin}/#/s/{item.shortUrl}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(`${window.location.origin}/s/${item.shortUrl}`)}
+                    onClick={() => copyToClipboard(`${window.location.origin}/#/s/${item.shortUrl}`)}
                     className="px-3 py-2 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
                   >
                     Копировать
