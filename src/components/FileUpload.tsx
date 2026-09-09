@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, File, X, Check } from 'lucide-react';
+import { Upload, File as FileIcon, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShareItem, UploadOptions } from '../types';
 import { saveFile, formatFileSize } from '../services/storageService';
@@ -148,7 +148,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
                   className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200"
                 >
                   <div className="p-2 bg-indigo-50 rounded-lg">
-                    <File className="w-4 h-4 text-indigo-600" />
+                    <FileIcon className="w-4 h-4 text-indigo-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
