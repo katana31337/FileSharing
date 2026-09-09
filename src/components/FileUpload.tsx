@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShareItem, UploadOptions } from '../types';
 import { saveFile, formatFileSize } from '../services/storageService';
 import { getAdminSettings } from '../services/adminService';
+import { ToastContainer, useToast } from './Toast';
 
 interface FileUploadProps {
   onUploadComplete: (item: ShareItem) => void;
@@ -18,6 +19,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [adminSettings, setAdminSettings] = useState(getAdminSettings());
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     const settings = getAdminSettings();
@@ -39,7 +41,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     const validFiles: File[] = [];
     for (const file of fileList) {
       if (file.size > adminSettings.maxFileSize) {
-        alert(`Файл "${file.name}" превышает максимальный размер ${formatFileSize(adminSettings.maxFileSize)}`);
+        toast.error(
+          'Файл слишком большой',
+          `"${file.name}" превышает максимальный размер ${formatFileSize(adminSettings.maxFileSize)}`
+        );
       } else {
         validFiles.push(file);
       }
@@ -309,6 +314,9 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
 }
