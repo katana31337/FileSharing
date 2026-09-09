@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Save, RotateCcw, Lock, ArrowLeft } from 'lucide-react';
+import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   getAdminSettings, 
@@ -20,7 +20,9 @@ export default function AdminPanel() {
   const [maxFileSizeInput, setMaxFileSizeInput] = useState(
     formatFileSize(settings.maxFileSize)
   );
+  const [logoUrl, setLogoUrl] = useState(settings.logoType === 'url' ? settings.logo : '');
   const [saveMessage, setSaveMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const auth = sessionStorage.getItem('admin_auth');
@@ -68,12 +70,64 @@ export default function AdminPanel() {
     setTimeout(() => setSaveMessage(''), 3000);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    // Проверка размера (максимум 2MB для логотипа)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Размер логотипа не должен превышать 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setSettings({
+        ...settings,
+        logo: dataUrl,
+        logoType: 'file',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUrlChange = (url: string) => {
+    setLogoUrl(url);
+    if (url.trim()) {
+      setSettings({
+        ...settings,
+        logo: url,
+        logoType: 'url',
+      });
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setSettings({
+      ...settings,
+      logo: '',
+      logoType: 'none',
+    });
+    setLogoUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleReset = () => {
     if (confirm('Сбросить все настройки к значениям по умолчанию?')) {
       resetAdminSettings();
       const defaultSettings = getAdminSettings();
       setSettings(defaultSettings);
       setMaxFileSizeInput(formatFileSize(defaultSettings.maxFileSize));
+      setLogoUrl('');
     }
   };
 
@@ -258,6 +312,85 @@ export default function AdminPanel() {
               <p className="text-xs text-gray-500 mt-2">
                 Измените пароль по умолчанию для безопасности
               </p>
+            </div>
+
+            {/* Логотип сайта */}
+            <div className="border border-gray-200 rounded-xl p-5">
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Логотип сайта
+              </label>
+
+              {/* Превью логотипа */}
+              {settings.logo && (
+                <div className="mb-4 flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                  <img 
+                    src={settings.logo} 
+                    alt="Логотип" 
+                    className="h-16 w-auto object-contain rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700">
+                      {settings.logoType === 'file' ? 'Загруженный файл' : 'URL'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {settings.logoType === 'url' ? settings.logo : 'Локальный файл'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRemoveLogo}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Удалить логотип"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Загрузка файла */}
+              <div className="space-y-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                    <Upload className="w-4 h-4" />
+                    Загрузить файл
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, SVG (макс. 2MB)
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-gray-500">или</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                    <Link className="w-4 h-4" />
+                    Указать URL
+                  </label>
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => handleLogoUrlChange(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    placeholder="https://example.com/logo.png"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Прямая ссылка на изображение
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Кнопки */}

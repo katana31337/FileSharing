@@ -4,6 +4,8 @@ export interface AdminSettings {
   maxExpirationDays: number;
   defaultExpirationDays: number;
   adminPassword: string;
+  logo: string; // Data URL (base64) или URL логотипа
+  logoType: 'none' | 'file' | 'url'; // Тип источника логотипа
 }
 
 const SETTINGS_KEY = 'fileshare_admin_settings';
@@ -14,6 +16,8 @@ const DEFAULT_SETTINGS: AdminSettings = {
   maxExpirationDays: 30,
   defaultExpirationDays: 7,
   adminPassword: 'admin123', // Временный пароль, нужно изменить!
+  logo: '',
+  logoType: 'none',
 };
 
 export function getAdminSettings(): AdminSettings {
