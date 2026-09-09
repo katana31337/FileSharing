@@ -438,14 +438,14 @@ curl -X POST http://localhost:3001/api/texts \
    ```
 
 3. **Создайте репозитории на Docker Hub**:
-   - `katana31337/fileshare-frontend`
-   - `katana31337/fileshare-backend`
+   - `yourusername/fileshare-frontend`
+   - `yourusername/fileshare-backend`
 
 ### Ручная публикация
 
 ```bash
 # === Переменные ===
-export DOCKER_USERNAME="katana31337"
+export DOCKER_USERNAME="yourusername"
 export VERSION="1.0.0"
 
 # === Сборка образов ===
@@ -475,7 +475,7 @@ docker images | grep fileshare
 chmod +x publish-docker.sh
 
 # Запустить публикацию
-./publish-docker.sh katana31337 1.0.0
+./publish-docker.sh yourusername 1.0.0
 ```
 
 ### Развёртывание с Docker Hub
