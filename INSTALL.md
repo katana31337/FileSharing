@@ -104,10 +104,10 @@ sudo ./install.sh
 📋 Полезные команды:
 
    cd /opt/fileshare
-   docker-compose ps                    # Статус сервисов
-   docker-compose logs -f               # Логи
-   docker-compose restart               # Перезапуск
-   docker-compose down                  # Остановка
+   docker compose ps                    # Статус сервисов
+   docker compose logs -f               # Логи
+   docker compose restart               # Перезапуск
+   docker compose down                  # Остановка
 
 🎉 Готово! Откройте https://files.example.com в браузере
 ```
@@ -135,7 +135,7 @@ EOF
 ./generate-self-signed.sh files.example.com
 
 # 4. Запустить
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Удаление
@@ -164,7 +164,7 @@ sudo ./uninstall.sh
 ## Поддержка
 
 Если возникли проблемы:
-1. Проверьте логи: `docker-compose logs -f`
+1. Проверьте логи: `docker compose logs -f`
 2. Убедитесь, что порты 80 и 443 свободны
 3. Проверьте, что Docker запущен: `docker ps`
 4. Создайте issue на GitHub

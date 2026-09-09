@@ -84,9 +84,9 @@ echo ""
 print_step "1/4" "Остановка сервисов..."
 
 if [ -f "docker-compose.prod.yml" ]; then
-    docker-compose -f docker-compose.prod.yml down || true
+    docker compose -f docker-compose.prod.yml down || true
 elif [ -f "docker-compose.yml" ]; then
-    docker-compose down || true
+    docker compose down || true
 fi
 
 print_success "Сервисы остановлены"
@@ -97,9 +97,9 @@ print_step "2/4" "Удаление Docker volumes..."
 read -p "Удалить все данные (БД, файлы)? [y/N]: " REMOVE_DATA
 if [[ "$REMOVE_DATA" =~ ^[Yy]$ ]]; then
     if [ -f "docker-compose.prod.yml" ]; then
-        docker-compose -f docker-compose.prod.yml down -v || true
+        docker compose -f docker-compose.prod.yml down -v || true
     elif [ -f "docker-compose.yml" ]; then
-        docker-compose down -v || true
+        docker compose down -v || true
     fi
     print_success "Docker volumes удалены"
 else

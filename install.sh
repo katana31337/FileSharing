@@ -83,8 +83,8 @@ check_dependencies() {
         missing+=("docker")
     fi
     
-    if ! command_exists docker-compose && ! docker compose version >/dev/null 2>&1; then
-        missing+=("docker-compose")
+    if ! docker compose version >/dev/null 2>&1; then
+        missing+=("docker compose")
     fi
     
     if ! command_exists git; then
@@ -428,12 +428,12 @@ setup_ssl() {
         
         # Start nginx with temp certificate
         print_info "Запуск nginx с временным сертификатом..."
-        docker-compose up -d nginx
+        docker compose up -d nginx
         sleep 5
         
         # Request real certificate from Let's Encrypt
         print_info "Запрос сертификата от Let's Encrypt..."
-        docker-compose run --rm --entrypoint "\
+        docker compose run --rm --entrypoint "\
             certbot certonly --webroot \
             -w /var/www/certbot \
             --email $EMAIL \
@@ -444,7 +444,7 @@ setup_ssl() {
             --non-interactive" certbot || {
             print_warning "Не удалось получить сертификат Let's Encrypt"
             print_info "Остановка nginx..."
-            docker-compose stop nginx
+            docker compose stop nginx
             print_error "Проверьте, что домен $DOMAIN указывает на этот сервер и порт 80 открыт"
             exit 1
         }
@@ -456,7 +456,7 @@ setup_ssl() {
         
         # Reload nginx with real certificate
         print_info "Перезагрузка nginx..."
-        docker-compose exec nginx nginx -s reload
+        docker compose exec nginx nginx -s reload
         
         print_success "Сертификат Let's Encrypt получен"
     else
@@ -515,11 +515,11 @@ start_services() {
     
     # Pull images
     print_info "Загрузка Docker образов..."
-    docker-compose pull
+    docker compose pull
     
     # Start services
     print_info "Запуск контейнеров..."
-    docker-compose up -d
+    docker compose up -d
     
     # Wait for services to be ready
     print_info "Ожидание запуска сервисов..."
@@ -551,10 +551,10 @@ print_summary() {
     echo -e "${CYAN}📋 Полезные команды:${NC}"
     echo ""
     echo -e "   ${BLUE}cd $INSTALL_DIR${NC}"
-    echo -e "   ${BLUE}docker-compose ps${NC}                    # Статус сервисов"
-    echo -e "   ${BLUE}docker-compose logs -f${NC}               # Логи"
-    echo -e "   ${BLUE}docker-compose restart${NC}               # Перезапуск"
-    echo -e "   ${BLUE}docker-compose down${NC}                  # Остановка"
+    echo -e "   ${BLUE}docker compose ps${NC}                    # Статус сервисов"
+    echo -e "   ${BLUE}docker compose logs -f${NC}               # Логи"
+    echo -e "   ${BLUE}docker compose restart${NC}               # Перезапуск"
+    echo -e "   ${BLUE}docker compose down${NC}                  # Остановка"
     echo ""
     
     if [ "$SSL_TYPE" = "selfsigned" ]; then

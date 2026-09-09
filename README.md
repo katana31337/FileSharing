@@ -127,7 +127,7 @@ sudo ./uninstall.sh
 ./generate-self-signed.sh localhost
 
 # 2. Запустить все сервисы
-docker-compose up -d
+docker compose up -d
 
 # Приложение доступно на https://localhost
 # API на https://localhost/api
@@ -140,7 +140,7 @@ docker-compose up -d
 ./init-letsencrypt.sh your-domain.com admin@your-domain.com
 
 # 2. Запустить сервисы
-docker-compose up -d
+docker compose up -d
 
 # Приложение доступно на https://your-domain.com
 ```
@@ -149,7 +149,7 @@ docker-compose up -d
 
 ```bash
 # 1. Запустить PostgreSQL
-docker-compose up -d db
+docker compose up -d db
 
 # 2. Frontend
 npm install
@@ -384,8 +384,8 @@ DB_NAME=fileshare
 **Продление:**
 ```bash
 # Вручную
-docker-compose run --rm certbot renew
-docker-compose exec nginx nginx -s reload
+docker compose run --rm certbot renew
+docker compose exec nginx nginx -s reload
 
 # Автоматически (cron в контейнере certbot)
 # Каждые 12 часов проверяет необходимость продления
@@ -503,8 +503,8 @@ EOF
 ./init-letsencrypt.sh files.example.com admin@example.com
 
 # 4. Запустить
-docker-compose -f docker-compose.prod.yml pull
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### CI/CD с GitHub Actions
@@ -673,8 +673,8 @@ docker pull katana31337/fileshare-frontend:latest
 ./init-letsencrypt.sh files.example.com admin@example.com
 
 # Продление (автоматически через certbot контейнер)
-docker-compose run --rm certbot renew
-docker-compose exec nginx nginx -s reload
+docker compose run --rm certbot renew
+docker compose exec nginx nginx -s reload
 ```
 
 ### Security Headers
