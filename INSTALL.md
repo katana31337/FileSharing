@@ -103,7 +103,9 @@ sudo bash install.sh
 ✓ Сгенерирован пароль: xK9#mP2$vL5nQ8wR
 ⚠️ Сохраните этот пароль в безопасном месте!
 
+ℹ Генерация учётных данных для базы данных...
 ✓ Все пароли созданы
+ℹ Пользователь БД: clever_feynman_427
 
 [3/8] Создание директории установки...
 ✓ Директория создана: /opt/fileshare
@@ -143,7 +145,7 @@ sudo bash install.sh
 
 🗄️  База данных:
 
-   User:     fileshare
+   User:     clever_feynman_427
    Password: <сгенерированный_пароль>
 
 📋 Полезные команды:
@@ -169,7 +171,7 @@ cd FileSharing
 # 2. Создать .env
 cat > .env << EOF
 DOMAIN=files.example.com
-DB_USER=fileshare
+DB_USER=$(echo $((RANDOM%1000))_$(shuf -i 1000-9999 -n 1))  # или любое уникальное имя
 DB_PASSWORD=$(openssl rand -base64 32)
 DB_NAME=fileshare
 EOF

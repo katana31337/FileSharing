@@ -18,44 +18,65 @@ function setItems<T>(key: string, items: T[]): void {
   localStorage.setItem(key, JSON.stringify(items));
 }
 
-export function saveFile(file: File, options: UploadOptions): ShareItem {
-  const id = generateId();
-  const shortUrl = generateShortUrl();
-  const now = new Date();
-  const expires = new Date(now.getTime() + options.expiresInDays * 24 * 60 * 60 * 1000);
+export function saveFile(
+  file: File, 
+  options: UploadOptions,
+  onProgress?: (progress: number) => void
+): Promise<ShareItem> {
+  return new Promise((resolve, reject) => {
+    const id = generateId();
+    const shortUrl = generateShortUrl();
+    const now = new Date();
+    const expires = new Date(now.getTime() + options.expiresInDays * 24 * 60 * 60 * 1000);
 
-  const item: ShareItem = {
-    id,
-    shortUrl,
-    type: file.type.startsWith('image/') ? 'image' : 'file',
-    name: file.name,
-    size: file.size,
-    mimeType: file.type || 'application/octet-stream',
-    createdAt: now.toISOString(),
-    expiresAt: expires.toISOString(),
-    expiresInDays: options.expiresInDays,
-    downloads: 0,
-  };
+    const item: ShareItem = {
+      id,
+      shortUrl,
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      name: file.name,
+      size: file.size,
+      mimeType: file.type || 'application/octet-stream',
+      createdAt: now.toISOString(),
+      expiresAt: expires.toISOString(),
+      expiresInDays: options.expiresInDays,
+      downloads: 0,
+    };
 
-  // Save file metadata
-  const files = getItems<ShareItem>(STORAGE_KEY_FILES);
-  files.push(item);
-  setItems(STORAGE_KEY_FILES, files);
+    // Save file metadata
+    const files = getItems<ShareItem>(STORAGE_KEY_FILES);
+    files.push(item);
+    setItems(STORAGE_KEY_FILES, files);
 
-  // Save file blob as data URL (for demo purposes)
-  const reader = new FileReader();
-  reader.onload = () => {
-    const blobs = JSON.parse(localStorage.getItem(STORAGE_KEY_BLOBS) || '{}');
-    blobs[id] = reader.result;
-    try {
-      localStorage.setItem(STORAGE_KEY_BLOBS, JSON.stringify(blobs));
-    } catch (e) {
-      console.warn('Storage quota exceeded, file may not persist');
-    }
-  };
-  reader.readAsDataURL(file);
-
-  return item;
+    // Save file blob as data URL (for demo purposes)
+    const reader = new FileReader();
+    
+    reader.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const progress = (event.loaded / event.total) * 100;
+        onProgress(progress);
+      }
+    };
+    
+    reader.onload = () => {
+      const blobs = JSON.parse(localStorage.getItem(STORAGE_KEY_BLOBS) || '{}');
+      blobs[id] = reader.result;
+      try {
+        localStorage.setItem(STORAGE_KEY_BLOBS, JSON.stringify(blobs));
+        if (onProgress) onProgress(100);
+        resolve(item);
+      } catch (e) {
+        console.warn('Storage quota exceeded, file may not persist');
+        if (onProgress) onProgress(100);
+        resolve(item);
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Ошибка чтения файла'));
+    };
+    
+    reader.readAsDataURL(file);
+  });
 }
 
 export function saveTextSnippet(content: string, title: string, language: string, options: UploadOptions): TextSnippet {
