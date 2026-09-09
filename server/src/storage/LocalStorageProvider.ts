@@ -5,10 +5,10 @@
 
 import { IStorageProvider } from './interfaces.js';
 import { Readable } from 'stream';
-import { createReadStream, createWriteStream, unlink, access } from 'fs/promises';
+import { createReadStream, createWriteStream } from 'fs';
+import { unlink, access, mkdir } from 'fs/promises';
 import { pipeline } from 'stream/promises';
 import { join } from 'path';
-import { mkdir } from 'fs/promises';
 
 export class LocalStorageProvider implements IStorageProvider {
   private basePath: string;
