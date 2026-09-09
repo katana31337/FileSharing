@@ -207,27 +207,28 @@ setup_directory() {
 create_docker_compose() {
     print_step "4/8" "Создание конфигурации Docker..."
     
-    cat > docker-compose.yml << 'EOF'
+    # Базовая часть (общая для всех)
+    cat > docker-compose.yml << EOF
 version: '3.8'
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${DB_USER:-fileshare}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-fileshare}
+      POSTGRES_USER: \${DB_USER:-fileshare}
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_DB: \${DB_NAME:-fileshare}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fileshare}"]
+      test: ["CMD-SHELL", "pg_isready -U \${DB_USER:-fileshare}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   backend:
-    image: ${DOCKER_USERNAME:-katana31337}/fileshare-backend:${VERSION:-latest}
+    image: \${DOCKER_USERNAME:-katana31337}/fileshare-backend:\${VERSION:-latest}
     expose:
       - "3001"
     environment:
@@ -235,12 +236,12 @@ services:
       PORT: 3001
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-fileshare}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME:-fileshare}
+      DB_USER: \${DB_USER:-fileshare}
+      DB_PASSWORD: \${DB_PASSWORD}
+      DB_NAME: \${DB_NAME:-fileshare}
       STORAGE_PROVIDER: local
       STORAGE_PATH: /app/uploads
-      CORS_ORIGIN: https://${DOMAIN}
+      CORS_ORIGIN: https://\${DOMAIN}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -249,13 +250,18 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: ${DOCKER_USERNAME:-katana31337}/fileshare-frontend:${VERSION:-latest}
+    image: \${DOCKER_USERNAME:-katana31337}/fileshare-frontend:\${VERSION:-latest}
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+EOF
+
+    # Добавляем специфичные настройки в зависимости от типа SSL
+    if [ "$SSL_TYPE" = "letsencrypt" ]; then
+        cat >> docker-compose.yml << 'EOF'
       - ./data/certbot/www:/var/www/certbot:ro
     depends_on:
       - backend
@@ -268,19 +274,31 @@ services:
       - ./data/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     restart: unless-stopped
+EOF
+    else
+        cat >> docker-compose.yml << 'EOF'
+    depends_on:
+      - backend
+    restart: unless-stopped
+EOF
+    fi
+
+    # Volumes (общая часть)
+    cat >> docker-compose.yml << 'EOF'
 
 volumes:
   postgres_data:
   uploads_data:
 EOF
     
-    print_success "docker-compose.yml создан"
+    print_success "docker-compose.yml создан (SSL: $SSL_TYPE)"
 }
 
 # Create nginx configuration
 create_nginx_config() {
     print_step "5/8" "Создание конфигурации Nginx..."
     
+    # Начало nginx.conf
     cat > nginx.conf << 'EOF'
 # Rate limiting
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
@@ -291,10 +309,20 @@ server {
     listen 80;
     listen [::]:80;
     server_name _;
+EOF
+
+    # Для Let's Encrypt добавляем ACME challenge
+    if [ "$SSL_TYPE" = "letsencrypt" ]; then
+        cat >> nginx.conf << 'EOF'
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
+EOF
+    fi
+
+    # Завершение HTTP сервера
+    cat >> nginx.conf << 'EOF'
 
     location / {
         return 301 https://$host$request_uri;
