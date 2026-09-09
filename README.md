@@ -92,7 +92,7 @@
 ### Автоматическая установка (рекомендуется)
 
 ```bash
-# Один командой
+# Один командой (скачать и выполнить)
 curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | sudo bash
 
 # Или скачайте и запустите
@@ -100,6 +100,8 @@ wget https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
+
+> **💡 Примечание:** Оба способа работают одинаково. Скрипт автоматически определяет, запущен ли он через pipe (`curl | bash`) или как обычный файл, и корректно обрабатывает интерактивный ввод в обоих случаях.
 
 Скрипт автоматически:
 - ✅ Проверит зависимости (Docker, Docker Compose, Git, OpenSSL)

@@ -8,6 +8,12 @@
 
 set -e
 
+# Fix stdin when running via curl | bash
+# If stdin is not a terminal (piped), redirect from /dev/tty
+if [ ! -t 0 ]; then
+    exec < /dev/tty
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
