@@ -7,13 +7,6 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 # Arguments
 DOCKER_USERNAME=${1:?"Usage: $0 <docker-username> <version>"}
 VERSION=${2:?"Usage: $0 <docker-username> <version>"}
@@ -22,75 +15,75 @@ VERSION=${2:?"Usage: $0 <docker-username> <version>"}
 FRONTEND_IMAGE="$DOCKER_USERNAME/fileshare-frontend"
 BACKEND_IMAGE="$DOCKER_USERNAME/fileshare-backend"
 
-echo -e "${BLUE}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   FileShare Docker Hub Publishing        ║${NC}"
-echo -e "${BLUE}╚══════════════════════════════════════════╝${NC}"
+echo "╔══════════════════════════════════════════╗"
+echo "║   FileShare Docker Hub Publishing        ║"
+echo "╚══════════════════════════════════════════╝"
 echo ""
-echo -e "${YELLOW}Docker Username:${NC} $DOCKER_USERNAME"
-echo -e "${YELLOW}Version:${NC} $VERSION"
+echo "Docker Username: $DOCKER_USERNAME"
+echo "Version: $VERSION"
 echo ""
 
 # Check if logged in to Docker Hub
-echo -e "${BLUE}[1/6] Checking Docker login...${NC}"
+echo "[1/6] Checking Docker login..."
 if ! docker info > /dev/null 2>&1; then
-    echo -e "${RED}Error: Docker is not running${NC}"
+    echo "Error: Docker is not running"
     exit 1
 fi
 
 if ! docker pull hello-world > /dev/null 2>&1; then
-    echo -e "${YELLOW}Warning: Not logged in to Docker Hub${NC}"
+    echo "Warning: Not logged in to Docker Hub"
     echo "Please run: docker login"
     docker login
 fi
-echo -e "${GREEN}✓ Docker is ready${NC}"
+echo "✓ Docker is ready"
 echo ""
 
 # Build frontend image
-echo -e "${BLUE}[2/6] Building frontend image...${NC}"
+echo "[2/6] Building frontend image..."
 docker build -t $FRONTEND_IMAGE:$VERSION -f Dockerfile.frontend .
 docker tag $FRONTEND_IMAGE:$VERSION $FRONTEND_IMAGE:latest
-echo -e "${GREEN}✓ Frontend image built${NC}"
+echo "✓ Frontend image built"
 echo ""
 
 # Build backend image
-echo -e "${BLUE}[3/6] Building backend image...${NC}"
+echo "[3/6] Building backend image..."
 docker build -t $BACKEND_IMAGE:$VERSION -f Dockerfile.backend .
 docker tag $BACKEND_IMAGE:$VERSION $BACKEND_IMAGE:latest
-echo -e "${GREEN}✓ Backend image built${NC}"
+echo "✓ Backend image built"
 echo ""
 
 # Push frontend images
-echo -e "${BLUE}[4/6] Pushing frontend to Docker Hub...${NC}"
+echo "[4/6] Pushing frontend to Docker Hub..."
 docker push $FRONTEND_IMAGE:$VERSION
 docker push $FRONTEND_IMAGE:latest
-echo -e "${GREEN}✓ Frontend pushed${NC}"
+echo "✓ Frontend pushed"
 echo ""
 
 # Push backend images
-echo -e "${BLUE}[5/6] Pushing backend to Docker Hub...${NC}"
+echo "[5/6] Pushing backend to Docker Hub..."
 docker push $BACKEND_IMAGE:$VERSION
 docker push $BACKEND_IMAGE:latest
-echo -e "${GREEN}✓ Backend pushed${NC}"
+echo "✓ Backend pushed"
 echo ""
 
 # Show summary
-echo -e "${BLUE}[6/6] Summary${NC}"
+echo "[6/6] Summary"
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   ✅ Published Successfully!             ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+echo "╔══════════════════════════════════════════╗"
+echo "║   ✅ Published Successfully!             ║"
+echo "╚══════════════════════════════════════════╝"
 echo ""
-echo -e "${YELLOW}Images:${NC}"
+echo "Images:"
 echo "  • $FRONTEND_IMAGE:$VERSION"
 echo "  • $FRONTEND_IMAGE:latest"
 echo "  • $BACKEND_IMAGE:$VERSION"
 echo "  • $BACKEND_IMAGE:latest"
 echo ""
-echo -e "${YELLOW}Pull commands:${NC}"
+echo "Pull commands:"
 echo "  docker pull $FRONTEND_IMAGE:$VERSION"
 echo "  docker pull $BACKEND_IMAGE:$VERSION"
 echo ""
-echo -e "${YELLOW}View on Docker Hub:${NC}"
+echo "View on Docker Hub:"
 echo "  https://hub.docker.com/r/$DOCKER_USERNAME/fileshare-frontend"
 echo "  https://hub.docker.com/r/$DOCKER_USERNAME/fileshare-backend"
 echo ""
