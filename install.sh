@@ -3,7 +3,7 @@
 # FileShare Installation Script
 # ==========================================
 # Автоматическая установка FileShare
-# Usage: curl -sSL https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | bash
 # или:   ./install.sh
 
 set -e
@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="/opt/fileshare"
-REPO_URL="https://github.com/yourusername/FileSharing.git"
+REPO_URL="https://github.com/katana31337/FileSharing.git"
 VERSION="1.0.0"
 
 # Functions
