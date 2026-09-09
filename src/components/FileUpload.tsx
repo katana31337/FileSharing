@@ -16,6 +16,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedItems, setUploadedItems] = useState<ShareItem[]>([]);
   const [adminSettings, setAdminSettings] = useState(getAdminSettings());
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -70,15 +71,32 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     setIsUploading(true);
     const options: UploadOptions = { expiresInDays };
     const newItems: ShareItem[] = [];
+    const progress: Record<string, number> = {};
+
+    // Инициализируем прогресс для всех файлов
+    files.forEach(file => {
+      progress[file.name] = 0;
+    });
+    setUploadProgress(progress);
 
     for (const file of files) {
-      const item = saveFile(file, options);
-      newItems.push(item);
+      try {
+        const item = await saveFile(file, options, (fileProgress) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: fileProgress
+          }));
+        });
+        newItems.push(item);
+      } catch (error) {
+        console.error(`Ошибка загрузки файла ${file.name}:`, error);
+      }
     }
 
     setUploadedItems(prev => [...newItems, ...prev]);
     newItems.forEach(item => onUploadComplete(item));
     setFiles([]);
+    setUploadProgress({});
     setIsUploading(false);
   };
 
@@ -184,29 +202,53 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
               Выбрано файлов: {files.length}
             </h3>
             <div className="space-y-2">
-              {files.map((file, index) => (
-                <motion.div
-                  key={`${file.name}-${index}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200"
-                >
-                  <div className="p-2 bg-indigo-50 rounded-lg">
-                    <FileIcon className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                    <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeFile(index); }}
-                    className="p-1 hover:bg-red-50 rounded-lg transition-colors"
+              {files.map((file, index) => {
+                const progress = uploadProgress[file.name] || 0;
+                const isUploadingFile = isUploading && progress > 0;
+                
+                return (
+                  <motion.div
+                    key={`${file.name}-${index}`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="bg-white rounded-lg p-3 border border-gray-200"
                   >
-                    <X className="w-4 h-4 text-red-500" />
-                  </button>
-                </motion.div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isUploadingFile ? 'bg-indigo-100' : 'bg-indigo-50'}`}>
+                        <FileIcon className={`w-4 h-4 ${isUploadingFile ? 'text-indigo-700' : 'text-indigo-600'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(file.size)}
+                          {isUploadingFile && ` • ${Math.round(progress)}%`}
+                        </p>
+                      </div>
+                      {!isUploading && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                          className="p-1 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    {isUploadingFile && (
+                      <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
             <button
               onClick={handleUpload}
@@ -216,7 +258,9 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
               {isUploading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Загрузка...
+                  Загрузка {Object.keys(uploadProgress).length > 0 
+                    ? `${Object.values(uploadProgress).filter(p => p === 100).length}/${files.length}` 
+                    : '...'}
                 </>
               ) : (
                 <>
