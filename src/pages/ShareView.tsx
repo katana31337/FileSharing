@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, FileText, Image, File, Clock, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Download, FileText, Image, File as FileIcon, Clock, ArrowLeft, Copy, Check } from 'lucide-react';
 import { getFileByShortUrl, getTextByShortUrl, formatFileSize, formatExpiration } from '../services/storageService';
 
 export default function ShareView() {
@@ -86,7 +86,7 @@ export default function ShareView() {
           className="text-center max-w-md"
         >
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <File className="w-8 h-8 text-red-500" />
+            <FileIcon className="w-8 h-8 text-red-500" />
           </div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Не найдено</h2>
           <p className="text-gray-600 mb-6">{error}</p>
