@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, FileText, Image, File as FileIcon, Clock, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Download, FileText, Image, File as FileIcon, Clock, ArrowLeft, Copy, Check, Zap } from 'lucide-react';
 import { getFileByShortUrl, getTextByShortUrl, formatFileSize, formatExpiration } from '../services/storageService';
+import { getAdminSettings } from '../services/adminService';
 
 export default function ShareView() {
   const { shortUrl } = useParams<{ shortUrl: string }>();
@@ -10,6 +11,12 @@ export default function ShareView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [logo, setLogo] = useState<string>('');
+
+  useEffect(() => {
+    const settings = getAdminSettings();
+    setLogo(settings.logo);
+  }, []);
 
   // File state
   const [fileData, setFileData] = useState<{ dataUrl: string; name: string; size: number; mimeType: string; type: string; expiresAt: string } | null>(null);
@@ -69,35 +76,59 @@ export default function ShareView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const renderHeader = () => (
+    <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+        {logo ? (
+          <img src={logo} alt="Логотип" className="h-9 w-auto object-contain" />
+        ) : (
+          <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+        )}
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">FileShare</h1>
+          <p className="text-xs text-gray-500">Быстрый обмен файлами</p>
+        </div>
+      </div>
+    </header>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen">
+        {renderHeader()}
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileIcon className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Не найдено</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+      <div className="min-h-screen">
+        {renderHeader()}
+        <div className="flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md"
           >
-            <ArrowLeft className="w-4 h-4" />
-            На главную
-          </button>
-        </motion.div>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileIcon className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Не найдено</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              На главную
+            </button>
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -105,7 +136,9 @@ export default function ShareView() {
   // Render file view
   if (fileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen">
+        {renderHeader()}
+        <div className="flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,6 +189,7 @@ export default function ShareView() {
             На главную
           </button>
         </motion.div>
+        </div>
       </div>
     );
   }
@@ -163,7 +197,9 @@ export default function ShareView() {
   // Render text view
   if (textData) {
     return (
-      <div className="min-h-screen p-4 md:p-8">
+      <div className="min-h-screen">
+        {renderHeader()}
+        <div className="p-4 md:p-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -211,6 +247,7 @@ export default function ShareView() {
             </pre>
           </div>
         </motion.div>
+        </div>
       </div>
     );
   }
