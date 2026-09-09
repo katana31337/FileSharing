@@ -8,6 +8,12 @@
 
 set -e
 
+# Fix stdin when running via curl | bash
+# If stdin is not a terminal (piped), redirect from /dev/tty
+if [ ! -t 0 ]; then
+    exec < /dev/tty
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -107,21 +113,10 @@ ask_questions() {
     print_step "2/7" "Настройка параметров..."
     echo ""
     
-    # Domain
-    while true; do
-        echo -e "${CYAN}Введите домен для FileShare${NC} (например: files.example.com):"
-        read -p "> " DOMAIN
-        if [ -n "$DOMAIN" ]; then
-            break
-        fi
-        print_warning "Домен не может быть пустым"
-    done
-    echo ""
-    
-    # SSL Certificate type
+    # SSL Certificate type - спрашиваем первым, чтобы адаптировать вопрос о домене
     echo -e "${CYAN}Какой SSL сертификат вы хотите использовать?${NC}"
-    echo "  1) Let's Encrypt (рекомендуется для production)"
-    echo "  2) Self-signed (для разработки/тестирования)"
+    echo "  1) Let's Encrypt (для production с публичным доменом)"
+    echo "  2) Self-signed (для локальной сети, IP-адреса или разработки)"
     echo ""
     while true; do
         read -p "Выберите [1-2]: " SSL_CHOICE
@@ -138,6 +133,26 @@ ask_questions() {
                 print_warning "Пожалуйста, введите 1 или 2"
                 ;;
         esac
+    done
+    echo ""
+    
+    # Domain - вопрос зависит от типа SSL
+    if [ "$SSL_TYPE" = "letsencrypt" ]; then
+        echo -e "${CYAN}Введите публичный домен для FileShare${NC}"
+        echo -e "${YELLOW}⚠️  Домен должен указывать на этот сервер и быть доступен из интернета${NC}"
+        echo -e "   Например: files.example.com"
+    else
+        echo -e "${CYAN}Введите адрес для FileShare${NC}"
+        echo -e "${YELLOW}💡  Это может быть домен, IP-адрес или имя хоста в локальной сети${NC}"
+        echo -e "   Например: files.local, 192.168.1.100, или files.example.com"
+    fi
+    echo ""
+    while true; do
+        read -p "> " DOMAIN
+        if [ -n "$DOMAIN" ]; then
+            break
+        fi
+        print_warning "Адрес не может быть пустым"
     done
     echo ""
     
