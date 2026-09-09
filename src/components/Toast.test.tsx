@@ -57,22 +57,23 @@ describe('Toast Component', () => {
   });
 
   it('should auto-remove toast after duration', async () => {
+    vi.useRealTimers(); // Use real timers for this test
+    
     const onRemove = vi.fn();
     const toasts = [{
       id: '1',
       type: 'error' as const,
       title: 'Ошибка',
       message: 'Тест',
-      duration: 3000,
+      duration: 1000, // Shorter duration for faster test
     }];
 
     render(<ToastContainer toasts={toasts} onRemove={onRemove} />);
 
-    vi.advanceTimersByTime(3000);
-
+    // Wait for the toast to auto-remove
     await waitFor(() => {
       expect(onRemove).toHaveBeenCalledWith('1');
-    });
+    }, { timeout: 2000 });
   });
 });
 

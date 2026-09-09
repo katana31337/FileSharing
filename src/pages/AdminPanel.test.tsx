@@ -231,7 +231,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
     });
   });
@@ -254,7 +255,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
     });
 
@@ -323,7 +325,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
 
       // Выход
@@ -333,6 +336,7 @@ describe('AdminPanel Component', () => {
       await waitFor(() => {
         expect(sessionStorage.getItem('admin_auth')).toBeNull();
         expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Введите учётные данные')).toBeInTheDocument();
       });
     });
   });
