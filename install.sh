@@ -3,13 +3,22 @@
 # FileShare Installation Script
 # ==========================================
 # Автоматическая установка FileShare
-# Usage: curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | bash
-# или:   ./install.sh
+# Usage: curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | sudo bash
+# или:   sudo bash install.sh
+#
+# ВАЖНО: Скрипт требует bash! Не используйте sh.
+# Если скрипт запущен через sh, он автоматически перезапустится через bash.
+# ==========================================
+
+# Проверка: если запущен не через bash, перезапустить через bash
+if [ -z "$BASH_VERSION" ]; then
+    exec bash "$0" "$@"
+fi
 
 set -e
 
-# Error handler
-trap 'print_error "Ошибка на строке $LINENO. Выход."' ERR
+# Error handler (только для bash)
+trap 'echo "❌ Ошибка на строке $LINENO. Выход." >&2' ERR
 
 # Fix stdin when running via curl | bash
 # If stdin is not a terminal (piped), redirect from /dev/tty
