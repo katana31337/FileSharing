@@ -209,8 +209,6 @@ create_docker_compose() {
     
     # Базовая часть (общая для всех)
     cat > docker-compose.yml << EOF
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
