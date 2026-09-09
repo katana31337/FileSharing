@@ -168,10 +168,10 @@ export default function TextShare({ onShareComplete }: TextShareProps) {
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm bg-white px-4 py-3 rounded-lg border border-green-200 text-indigo-700 font-mono truncate">
-                  {window.location.origin}/s/{sharedSnippet.shortUrl}
+                  {window.location.origin}/#/s/{sharedSnippet.shortUrl}
                 </code>
                 <button
-                  onClick={() => copyToClipboard(`${window.location.origin}/s/${sharedSnippet.shortUrl}`)}
+                  onClick={() => copyToClipboard(`${window.location.origin}/#/s/${sharedSnippet.shortUrl}`)}
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     copied ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
                   }`}

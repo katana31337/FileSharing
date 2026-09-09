@@ -110,7 +110,7 @@ sudo ./install.sh
 - ✅ Сгенерирует безопасные пароли
 - ✅ Создаст конфигурационные файлы (docker-compose.yml, nginx.conf, .env)
 - ✅ Получит SSL сертификат (Let's Encrypt или self-signed)
-- ✅ Запустит все сервисы
+- ✅ Запустит только необходимые сервисы (certbot только для Let's Encrypt)
 
 ### Удаление
 
