@@ -100,8 +100,10 @@ curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install
 # Или скачайте и запустите
 wget https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh
 chmod +x install.sh
-sudo ./install.sh
+sudo bash install.sh
 ```
+
+> **⚠️ Важно:** Используйте `bash install.sh`, а не `sh install.sh`. Скрипт написан для bash и использует bash-специфичные функции. Если вы случайно запустите через `sh`, скрипт автоматически перезапустится через `bash`.
 
 > **💡 Примечание:** Оба способа работают одинаково. Скрипт автоматически определяет, запущен ли он через pipe (`curl | bash`) или как обычный файл, и корректно обрабатывает интерактивный ввод в обоих случаях.
 
