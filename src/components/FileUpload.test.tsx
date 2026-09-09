@@ -79,21 +79,21 @@ describe('FileUpload Component', () => {
   });
 
   it('should handle file selection', async () => {
-    const user = userEvent.setup();
     const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    
+    // Use fireEvent.change to avoid event bubbling to parent onClick
+    fireEvent.change(fileInput, { target: { files: [file] } });
     
     expect(screen.getByText('test.txt')).toBeInTheDocument();
     expect(screen.getByText('Загрузить 1 файл')).toBeInTheDocument();
   });
 
   it('should show error toast when file exceeds max size', async () => {
-    const user = userEvent.setup();
     const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
     // Create file larger than 10 MB
@@ -101,7 +101,9 @@ describe('FileUpload Component', () => {
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, largeFile);
+    
+    // Use fireEvent.change to avoid event bubbling to parent onClick
+    fireEvent.change(fileInput, { target: { files: [largeFile] } });
     
     await waitFor(() => {
       expect(screen.getByText('Файл слишком большой')).toBeInTheDocument();
@@ -116,7 +118,9 @@ describe('FileUpload Component', () => {
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    
+    // Use fireEvent.change to avoid event bubbling to parent onClick
+    fireEvent.change(fileInput, { target: { files: [file] } });
     
     const uploadButton = screen.getByText('Загрузить 1 файл');
     await user.click(uploadButton);
@@ -135,7 +139,9 @@ describe('FileUpload Component', () => {
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    
+    // Use fireEvent.change to avoid event bubbling to parent onClick
+    fireEvent.change(fileInput, { target: { files: [file] } });
     
     expect(screen.getByText('test.txt')).toBeInTheDocument();
     
@@ -162,7 +168,9 @@ describe('FileUpload Component', () => {
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    
+    // Use fireEvent.change to avoid event bubbling to parent onClick
+    fireEvent.change(fileInput, { target: { files: [file] } });
     
     const uploadButton = screen.getByText('Загрузить 1 файл');
     await user.click(uploadButton);
