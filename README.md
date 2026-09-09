@@ -2,6 +2,39 @@
 
 Клиент-серверное приложение для быстрого обмена файлами, текстом и изображениями через короткие ссылки.
 
+## 📋 Оглавление
+
+- [🏗 Архитектура](#-архитектура)
+  - [Стек технологий](#стек-технологий)
+  - [Принципы SOLID в архитектуре](#принципы-solid-в-архитектуре)
+- [🚀 Быстрый старт](#-быстрый-старт)
+  - [Через Docker (рекомендуется)](#через-docker-рекомендуется)
+  - [Production (с реальным доменом)](#production-с-реальным-доменом)
+  - [Локальная разработка (без Docker)](#локальная-разработка-без-docker)
+- [🔧 Инфраструктура и конфигурация](#-инфраструктура-и-конфигурация)
+  - [Порты и сервисы](#порты-и-сервисы)
+  - [Reverse Proxy (Nginx)](#reverse-proxy-nginx)
+  - [Хранение файлов](#хранение-файлов)
+  - [База данных](#база-данных)
+  - [SSL/TLS сертификаты](#ssltls-сертификаты)
+- [📡 API Endpoints](#-api-endpoints)
+- [🐳 Публикация на Docker Hub](#-публикация-на-docker-hub)
+  - [Подготовка](#подготовка)
+  - [Ручная публикация](#ручная-публикация)
+  - [Автоматическая публикация (скрипт)](#автоматическая-публикация-скрипт)
+  - [Развёртывание с Docker Hub](#развёртывание-с-docker-hub)
+  - [CI/CD с GitHub Actions](#cicd-с-github-actions)
+  - [Полезные команды](#полезные-команды)
+- [🔒 HTTPS / SSL](#-https--ssl)
+  - [Архитектура HTTPS](#архитектура-https)
+  - [Варианты сертификатов](#варианты-сертификатов)
+  - [Security Headers](#security-headers)
+  - [SSL/TLS настройки](#ssltls-настройки)
+- [📁 Структура проекта](#-структура-проекта)
+- [⚙️ Конфигурация](#-конфигурация)
+- [🔧 Расширение](#-расширение)
+- [📋 TODO](#-todo)
+
 ## 🏗 Архитектура
 
 ### Стек технологий
@@ -94,6 +127,271 @@ cd server
 cp .env.example .env
 npm install
 npm run dev          # http://localhost:3001
+```
+
+## 🔧 Инфраструктура и конфигурация
+
+### Порты и сервисы
+
+| Сервис | Порт (внешний) | Порт (внутренний) | Описание |
+|--------|----------------|-------------------|----------|
+| **Nginx** (Frontend) | `80` | `80` | HTTP → HTTPS редирект |
+| **Nginx** (Frontend) | `443` | `443` | HTTPS + Reverse Proxy |
+| **Backend API** | `3001` (только внутри сети) | `3001` | Node.js + Express API |
+| **PostgreSQL** | `5432` (опционально) | `5432` | База данных |
+
+**Примечание:** Backend API не экспортируется наружу напрямую. Все запросы проходят через Nginx.
+
+### Reverse Proxy (Nginx)
+
+Nginx выполняет роль reverse proxy и SSL terminator:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Клиент (Browser)                      │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTPS (443)
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         Nginx Container                       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  • SSL Termination (TLS 1.2/1.3)                     │   │
+│  │  • HTTP → HTTPS редирект (301)                       │   │
+│  │  • Security Headers (HSTS, CSP, X-Frame-Options)     │   │
+│  │  • Rate Limiting (10 req/s для API, 2 req/s uploads) │   │
+│  │  • Gzip сжатие                                        │   │
+│  │  • Кэширование статики (1 год)                       │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+              ▼                         ▼
+    ┌─────────────────┐      ┌─────────────────┐
+    │  Frontend (SPA) │      │   Backend API   │
+    │  /usr/share/    │      │   http://       │
+    │  nginx/html     │      │   backend:3001  │
+    └─────────────────┘      └─────────────────┘
+```
+
+#### Маршрутизация Nginx:
+
+| Путь | Назначение | Rate Limit |
+|------|-----------|------------|
+| `/` | Frontend SPA (React) | — |
+| `/api/*` | Backend API (проксирование) | 10 req/s |
+| `/api/files` | Загрузка файлов | 2 req/s |
+| `/api/health` | Health check | Без лимита |
+| `/.well-known/acme-challenge/` | Let's Encrypt | — |
+
+#### Передаваемые заголовки:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Request-ID $request_id;
+```
+
+### Хранение файлов
+
+#### Структура директорий:
+
+```
+FileSharing/
+├── ssl/                          # SSL сертификаты (не в git!)
+│   ├── fullchain.pem            # Полный сертификат
+│   └── privkey.pem              # Приватный ключ
+│
+├── data/                         # Данные Let's Encrypt
+│   ├── certbot/
+│   │   ├── conf/                # Конфигурация certbot
+│   │   │   ├── live/            # Активные сертификаты
+│   │   │   ├── archive/         # Архив сертификатов
+│   │   │   └── renewal/         # Конфигурация продления
+│   │   └── www/                 # Webroot для ACME challenge
+│   │
+├── uploads/                      # Загруженные файлы (volume)
+│   └── files/                   # Файлы пользователей
+│       ├── 1234567890-doc.pdf
+│       ├── 1234567891-image.png
+│       └── ...
+│
+├── postgres_/                  # PostgreSQL данные (volume)
+│
+├── server/
+│   └── migrations/              # SQL миграции БД
+│       └── 001_initial.sql
+│
+└── docker-compose.yml           # Основная конфигурация
+```
+
+#### Volumes (Docker):
+
+| Volume | Путь в контейнере | Назначение |
+|--------|-------------------|------------|
+| `postgres_` | `/var/lib/postgresql/data` | Данные PostgreSQL |
+| `uploads_` | `/app/uploads` | Загруженные файлы |
+| `./ssl` | `/etc/nginx/ssl` (ro) | SSL сертификаты |
+| `./data/certbot/conf` | `/etc/letsencrypt` | Let's Encrypt конфиг |
+| `./data/certbot/www` | `/var/www/certbot` (ro) | ACME challenge |
+| `./nginx.conf` | `/etc/nginx/conf.d/default.conf` (ro) | Nginx конфиг |
+
+#### Жизненный цикл файлов:
+
+```
+1. Загрузка файла
+   └─> POST /api/files (multipart/form-data)
+       └─> Backend сохраняет файл в /app/uploads/files/
+       └─> Метаданные в PostgreSQL (files table)
+       └─> Возвращается shortUrl (7 символов)
+
+2. Скачивание файла
+   └─> GET /api/files/:shortUrl/download
+       └─> Nginx проксирует на Backend
+       └─> Backend читает файл из /app/uploads/files/
+       └─> Stream передаётся клиенту
+       └─> download_count увеличивается в БД
+
+3. Автоматическая очистка (cron)
+   └─> Каждую минуту проверяются просроченные файлы
+   └─> Файлы удаляются из /app/uploads/files/
+   └─> Записи удаляются из PostgreSQL
+```
+
+#### Лимиты:
+
+| Параметр | Значение | Где настраивается |
+|----------|----------|-------------------|
+| Макс. размер файла | 100 MB | `client_max_body_size` в nginx.conf |
+| Макс. срок хранения | 30 дней | `MAX_EXPIRATION_DAYS` в .env |
+| Timeout загрузки | 300 сек | `proxy_read_timeout` в nginx.conf |
+| Rate limit (API) | 10 req/s | `limit_req_zone` в nginx.conf |
+| Rate limit (uploads) | 2 req/s | `limit_req_zone` в nginx.conf |
+
+### База данных
+
+#### PostgreSQL 16
+
+**Таблицы:**
+
+```sql
+-- Файлы
+CREATE TABLE files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  short_url VARCHAR(10) UNIQUE NOT NULL,
+  name VARCHAR(500) NOT NULL,
+  size BIGINT NOT NULL,
+  mime_type VARCHAR(255) NOT NULL,
+  storage_path TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  max_downloads INTEGER,
+  download_count INTEGER DEFAULT 0,
+  password VARCHAR(255)
+);
+
+-- Текстовые сниппеты
+CREATE TABLE text_snippets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  short_url VARCHAR(10) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL DEFAULT 'Untitled',
+  content TEXT NOT NULL,
+  language VARCHAR(50) NOT NULL DEFAULT 'text',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+```
+
+**Индексы:**
+
+```sql
+CREATE INDEX idx_files_short_url ON files(short_url);
+CREATE INDEX idx_files_expires_at ON files(expires_at);
+CREATE INDEX idx_texts_short_url ON text_snippets(short_url);
+CREATE INDEX idx_texts_expires_at ON text_snippets(expires_at);
+```
+
+**Подключение:**
+
+```env
+DB_HOST=db
+DB_PORT=5432
+DB_USER=fileshare
+DB_PASSWORD=your_secure_password
+DB_NAME=fileshare
+```
+
+### SSL/TLS сертификаты
+
+#### Self-Signed (разработка)
+
+```bash
+./generate-self-signed.sh localhost
+```
+
+**Где хранятся:**
+- `./ssl/fullchain.pem` — сертификат
+- `./ssl/privkey.pem` — приватный ключ
+
+**Срок действия:** 365 дней
+
+#### Let's Encrypt (production)
+
+```bash
+./init-letsencrypt.sh your-domain.com admin@example.com
+```
+
+**Где хранятся:**
+- `./data/certbot/conf/live/your-domain.com/fullchain.pem`
+- `./data/certbot/conf/live/your-domain.com/privkey.pem`
+- Копируются в `./ssl/` для Nginx
+
+**Продление:**
+```bash
+# Вручную
+docker-compose run --rm certbot renew
+docker-compose exec nginx nginx -s reload
+
+# Автоматически (cron в контейнере certbot)
+# Каждые 12 часов проверяет необходимость продления
+```
+
+## 📡 API Endpoints
+
+### Файлы
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/api/files` | Загрузить файл (multipart) |
+| GET | `/api/files/:shortUrl` | Информация о файле |
+| GET | `/api/files/:shortUrl/download` | Скачать файл |
+| DELETE | `/api/files/:shortUrl` | Удалить файл |
+
+### Текст
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/api/texts` | Создать сниппет |
+| GET | `/api/texts/:shortUrl` | Получить сниппет |
+| DELETE | `/api/texts/:shortUrl` | Удалить сниппет |
+
+### Примеры
+
+```bash
+# Загрузить файл
+curl -X POST http://localhost:3001/api/files \
+  -F "file=@document.pdf" \
+  -F "expiresInDays=7"
+
+# Создать текстовый сниппет
+curl -X POST http://localhost:3001/api/texts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "My Code",
+    "content": "console.log(\"hello\")",
+    "language": "javascript",
+    "expiresInDays": 7
+  }'
 ```
 
 ## 🐳 Публикация на Docker Hub
@@ -264,42 +562,6 @@ docker run --rm -p 3001:3001 yourusername/fileshare-backend:latest
 # Pull и запуск на другом сервере
 docker pull yourusername/fileshare-backend:latest
 docker pull yourusername/fileshare-frontend:latest
-```
-
-## 📡 API Endpoints
-
-### Файлы
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/api/files` | Загрузить файл (multipart) |
-| GET | `/api/files/:shortUrl` | Информация о файле |
-| GET | `/api/files/:shortUrl/download` | Скачать файл |
-| DELETE | `/api/files/:shortUrl` | Удалить файл |
-
-### Текст
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/api/texts` | Создать сниппет |
-| GET | `/api/texts/:shortUrl` | Получить сниппет |
-| DELETE | `/api/texts/:shortUrl` | Удалить сниппет |
-
-### Примеры
-
-```bash
-# Загрузить файл
-curl -X POST http://localhost:3001/api/files \
-  -F "file=@document.pdf" \
-  -F "expiresInDays=7"
-
-# Создать текстовый сниппет
-curl -X POST http://localhost:3001/api/files \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "My Code",
-    "content": "console.log(\"hello\")",
-    "language": "javascript",
-    "expiresInDays": 7
-  }'
 ```
 
 ## 📁 Структура проекта
