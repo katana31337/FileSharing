@@ -34,17 +34,14 @@ export default function AdminPanel() {
   // Проверяем, нужна ли первичная настройка
   const checkInitialSetup = () => {
     const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
-    if (!hasSavedSettings && secretPath && secretPath !== 'admin') {
-      return true;
-    }
-    return false;
+    return !hasSavedSettings && secretPath;
   };
 
   // Проверяем, совпадает ли путь с секретным
   const isValidSecretPath = () => {
     const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
     
-    // Если настроек нет ещё - разрешаем доступ (покажем форму настройки)
+    // Если настроек нет - это первый визит, разрешаем доступ
     if (!hasSavedSettings) {
       return true;
     }
@@ -71,7 +68,7 @@ export default function AdminPanel() {
     if (auth === 'true') {
       setIsAuthenticated(true);
     }
-  }, [secretPath, navigate]);
+  }, [secretPath]);
 
   const handleInitialSetup = (e: React.FormEvent) => {
     e.preventDefault();
