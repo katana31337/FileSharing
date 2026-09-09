@@ -132,5 +132,5 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "${CYAN}Для повторной установки выполните:${NC}"
 echo ""
-echo -e "  ${BLUE}curl -sSL https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh | sudo bash${NC}"
+echo -e "  ${BLUE}curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | sudo bash${NC}"
 echo ""

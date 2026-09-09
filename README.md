@@ -93,10 +93,10 @@
 
 ```bash
 # Один командой
-curl -sSL https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh | sudo bash
 
 # Или скачайте и запустите
-wget https://raw.githubusercontent.com/yourusername/FileSharing/main/install.sh
+wget https://raw.githubusercontent.com/katana31337/FileSharing/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -113,7 +113,7 @@ sudo ./install.sh
 
 ```bash
 # Скачать и запустить
-wget https://raw.githubusercontent.com/yourusername/FileSharing/main/uninstall.sh
+wget https://raw.githubusercontent.com/katana31337/FileSharing/main/uninstall.sh
 chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```
@@ -438,14 +438,14 @@ curl -X POST http://localhost:3001/api/texts \
    ```
 
 3. **Создайте репозитории на Docker Hub**:
-   - `yourusername/fileshare-frontend`
-   - `yourusername/fileshare-backend`
+   - `katana31337/fileshare-frontend`
+   - `katana31337/fileshare-backend`
 
 ### Ручная публикация
 
 ```bash
 # === Переменные ===
-export DOCKER_USERNAME="yourusername"
+export DOCKER_USERNAME="katana31337"
 export VERSION="1.0.0"
 
 # === Сборка образов ===
@@ -475,7 +475,7 @@ docker images | grep fileshare
 chmod +x publish-docker.sh
 
 # Запустить публикацию
-./publish-docker.sh yourusername 1.0.0
+./publish-docker.sh katana31337 1.0.0
 ```
 
 ### Развёртывание с Docker Hub
@@ -486,7 +486,7 @@ chmod +x publish-docker.sh
 
 ```bash
 # 1. Клонировать проект
-git clone https://github.com/yourusername/FileSharing.git
+git clone https://github.com/katana31337/FileSharing.git
 cd FileSharing
 
 # 2. Создать .env
@@ -588,11 +588,11 @@ docker images | grep fileshare
 docker rmi $(docker images | grep fileshare | awk '{print $3}')
 
 # Проверить образ перед публикацией
-docker run --rm -p 3001:3001 yourusername/fileshare-backend:latest
+docker run --rm -p 3001:3001 katana31337/fileshare-backend:latest
 
 # Pull и запуск на другом сервере
-docker pull yourusername/fileshare-backend:latest
-docker pull yourusername/fileshare-frontend:latest
+docker pull katana31337/fileshare-backend:latest
+docker pull katana31337/fileshare-frontend:latest
 ```
 
 ## 📁 Структура проекта
