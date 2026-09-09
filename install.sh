@@ -246,21 +246,95 @@ setup_ssl() {
         print_info "Получение сертификата Let's Encrypt..."
         echo ""
         
-        # Make script executable
-        chmod +x init-letsencrypt.sh
+        # Create directories for certbot
+        mkdir -p ./data/certbot/conf
+        mkdir -p ./data/certbot/www
+        mkdir -p ./data/certbot/live/$DOMAIN
+        mkdir -p ./data/certbot/archive/$DOMAIN
+        mkdir -p ./ssl
         
-        # Run Let's Encrypt script
-        ./init-letsencrypt.sh "$DOMAIN" "$EMAIL"
+        # Generate temporary self-signed certificate for initial nginx start
+        print_info "Создание временного сертификата..."
+        openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout ./data/certbot/conf/privkey.pem \
+            -out ./data/certbot/conf/fullchain.pem \
+            -subj "/CN=localhost" 2>/dev/null
+        
+        # Copy temp cert to ssl directory for nginx
+        cp ./data/certbot/conf/privkey.pem ./ssl/privkey.pem
+        cp ./data/certbot/conf/fullchain.pem ./ssl/fullchain.pem
+        
+        # Start nginx with temp certificate
+        print_info "Запуск nginx с временным сертификатом..."
+        docker-compose up -d nginx
+        sleep 5
+        
+        # Request real certificate from Let's Encrypt
+        print_info "Запрос сертификата от Let's Encrypt..."
+        docker-compose run --rm --entrypoint "\
+            certbot certonly --webroot \
+            -w /var/www/certbot \
+            --email $EMAIL \
+            -d $DOMAIN \
+            --rsa-key-size 4096 \
+            --agree-tos \
+            --force-renewal \
+            --non-interactive" certbot
+        
+        # Copy real certificate to ssl directory
+        print_info "Установка сертификата..."
+        cp ./data/certbot/live/$DOMAIN/privkey.pem ./ssl/privkey.pem
+        cp ./data/certbot/live/$DOMAIN/fullchain.pem ./ssl/fullchain.pem
+        
+        # Reload nginx with real certificate
+        print_info "Перезагрузка nginx..."
+        docker-compose exec nginx nginx -s reload
         
         print_success "Сертификат Let's Encrypt получен"
     else
         print_info "Генерация self-signed сертификата..."
         
-        # Make script executable
-        chmod +x generate-self-signed.sh
+        # Create SSL directory
+        mkdir -p ./ssl
+        
+        # Generate private key
+        print_info "Создание приватного ключа..."
+        openssl genrsa -out ./ssl/privkey.pem 2048 2>/dev/null
+        
+        # Generate CSR (Certificate Signing Request)
+        print_info "Создание запроса на подпись сертификата..."
+        openssl req -new -key ./ssl/privkey.pem \
+            -out ./ssl/cert.csr \
+            -subj "/C=US/ST=State/L=City/O=FileShare/CN=$DOMAIN" 2>/dev/null
+        
+        # Create extensions file for SAN (Subject Alternative Names)
+        print_info "Создание расширений сертификата..."
+        cat > ./ssl/cert.ext << EOF
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = $DOMAIN
+DNS.2 = *.$DOMAIN
+IP.1 = 127.0.0.1
+IP.2 = ::1
+EOF
         
         # Generate self-signed certificate
-        ./generate-self-signed.sh "$DOMAIN"
+        print_info "Генерация самоподписанного сертификата..."
+        openssl x509 -req -in ./ssl/cert.csr \
+            -CA ./ssl/privkey.pem -CAkey ./ssl/privkey.pem \
+            -CAcreateserial -out ./ssl/fullchain.pem \
+            -days 365 -sha256 -extfile ./ssl/cert.ext 2>/dev/null
+        
+        # Clean up temporary files
+        rm -f ./ssl/cert.csr ./ssl/cert.ext ./ssl/privkey.srl
+        
+        # Set permissions
+        chmod 600 ./ssl/privkey.pem
+        chmod 644 ./ssl/fullchain.pem
         
         print_success "Self-signed сертификат создан"
         print_warning "Браузер будет показывать предупреждение о безопасности"
