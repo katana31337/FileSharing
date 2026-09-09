@@ -72,7 +72,7 @@ command_exists() {
 
 # Check dependencies
 check_dependencies() {
-    print_step "1/7" "Проверка зависимостей..."
+    print_step "1/8" "Проверка зависимостей..."
     
     local missing=()
     
@@ -110,7 +110,7 @@ check_dependencies() {
 
 # Ask questions
 ask_questions() {
-    print_step "2/7" "Настройка параметров..."
+    print_step "2/8" "Настройка параметров..."
     echo ""
     
     # SSL Certificate type - спрашиваем первым, чтобы адаптировать вопрос о домене
@@ -180,7 +180,7 @@ ask_questions() {
 
 # Create installation directory
 setup_directory() {
-    print_step "3/7" "Создание директории установки..."
+    print_step "3/8" "Создание директории установки..."
     
     if [ -d "$INSTALL_DIR" ]; then
         print_warning "Директория $INSTALL_DIR уже существует"
@@ -200,23 +200,182 @@ setup_directory() {
     print_success "Директория создана: $INSTALL_DIR"
 }
 
-# Clone repository
-clone_repository() {
-    print_step "4/7" "Загрузка FileShare..."
+# Create docker-compose file
+create_docker_compose() {
+    print_step "4/8" "Создание конфигурации Docker..."
     
-    if command_exists git; then
-        git clone --depth 1 "$REPO_URL" .
-        print_success "Репозиторий клонирован"
-    else
-        print_info "Скачивание архива..."
-        curl -sSL "${REPO_URL%/git}/archive/main.tar.gz" | tar xz --strip-components=1
-        print_success "Архив распакован"
-    fi
+    cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-fileshare}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-fileshare}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fileshare}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    image: ${DOCKER_USERNAME:-katana31337}/fileshare-backend:${VERSION:-latest}
+    expose:
+      - "3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fileshare}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-fileshare}
+      STORAGE_PROVIDER: local
+      STORAGE_PATH: /app/uploads
+      CORS_ORIGIN: https://${DOMAIN}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: ${DOCKER_USERNAME:-katana31337}/fileshare-frontend:${VERSION:-latest}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./data/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:
+EOF
+    
+    print_success "docker-compose.yml создан"
+}
+
+# Create nginx configuration
+create_nginx_config() {
+    print_step "5/8" "Создание конфигурации Nginx..."
+    
+    cat > nginx.conf << 'EOF'
+# Rate limiting
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=2r/s;
+
+# HTTP -> HTTPS redirect
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    client_max_body_size 100M;
+    client_body_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    location /api/ {
+        limit_req zone=api_limit burst=20 nodelay;
+        proxy_pass http://backend:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+    }
+
+    location /api/files {
+        limit_req zone=upload_limit burst=5 nodelay;
+        proxy_pass http://backend:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/health {
+        proxy_pass http://backend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+}
+EOF
+    
+    print_success "nginx.conf создан"
 }
 
 # Create .env file
 create_env_file() {
-    print_step "5/7" "Создание конфигурации..."
+    print_step "6/8" "Создание конфигурации..."
     
     cat > .env << EOF
 # FileShare Configuration
@@ -240,7 +399,7 @@ EOF
 
 # Setup SSL certificate
 setup_ssl() {
-    print_step "6/7" "Настройка SSL сертификата..."
+    print_step "7/8" "Настройка SSL сертификата..."
     
     if [ "$SSL_TYPE" = "letsencrypt" ]; then
         print_info "Получение сертификата Let's Encrypt..."
@@ -279,7 +438,13 @@ setup_ssl() {
             --rsa-key-size 4096 \
             --agree-tos \
             --force-renewal \
-            --non-interactive" certbot
+            --non-interactive" certbot || {
+            print_warning "Не удалось получить сертификат Let's Encrypt"
+            print_info "Остановка nginx..."
+            docker-compose stop nginx
+            print_error "Проверьте, что домен $DOMAIN указывает на этот сервер и порт 80 открыт"
+            exit 1
+        }
         
         # Copy real certificate to ssl directory
         print_info "Установка сертификата..."
@@ -343,22 +508,15 @@ EOF
 
 # Start services
 start_services() {
-    print_step "7/7" "Запуск сервисов..."
-    
-    # Determine which compose file to use
-    if [ -f "docker-compose.prod.yml" ]; then
-        COMPOSE_FILE="docker-compose.prod.yml"
-    else
-        COMPOSE_FILE="docker-compose.yml"
-    fi
+    print_step "8/8" "Запуск сервисов..."
     
     # Pull images
     print_info "Загрузка Docker образов..."
-    docker-compose -f "$COMPOSE_FILE" pull
+    docker-compose pull
     
     # Start services
     print_info "Запуск контейнеров..."
-    docker-compose -f "$COMPOSE_FILE" up -d
+    docker-compose up -d
     
     # Wait for services to be ready
     print_info "Ожидание запуска сервисов..."
@@ -433,7 +591,8 @@ main() {
     check_dependencies
     ask_questions
     setup_directory
-    clone_repository
+    create_docker_compose
+    create_nginx_config
     create_env_file
     setup_ssl
     start_services
