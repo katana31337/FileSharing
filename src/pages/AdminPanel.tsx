@@ -34,15 +34,6 @@ export default function AdminPanel() {
   const [showInitialPassword, setShowInitialPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Загружаем настройки из API при монтировании компонента
-  useEffect(() => {
-    getAdminSettingsAsync().then(settings => {
-      setSettings(settings);
-      setMaxFileSizeInput(formatFileSize(settings.maxFileSize));
-      setLogoUrl(settings.logoType === 'url' ? settings.logo : '');
-    });
-  }, []);
-
   // Проверяем, нужна ли первичная настройка
   const checkInitialSetup = () => {
     const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
@@ -51,36 +42,107 @@ export default function AdminPanel() {
 
   // Проверяем, совпадает ли путь с секретным
   const isValidSecretPath = () => {
-    const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
-    
-    // Если настроек нет - это первый визит, разрешаем доступ
-    if (!hasSavedSettings) {
-      return true;
+    // Если есть secretPath в URL - это всегда валидный путь для первого визита
+    if (secretPath) {
+      const hasSavedSettings = localStorage.getItem('fileshare_admin_settings');
+      
+      // Если настроек нет - это первый визит, разрешаем доступ
+      if (!hasSavedSettings) {
+        return true;
+      }
+      
+      // Если настройки есть - проверяем совпадение пути
+      const savedSettings = getAdminSettings();
+      return secretPath === savedSettings.adminSecretPath;
     }
     
-    // Если настройки есть - проверяем совпадение пути
-    const savedSettings = getAdminSettings();
-    return secretPath === savedSettings.adminSecretPath;
+    return false;
   };
 
+  // При первом посещении секретного URL - сохраняем этот путь
   useEffect(() => {
-    // Проверяем, нужна ли первичная настройка
-    if (checkInitialSetup()) {
+    console.log('%c[AdminPanel] 🔑 Проверка секретного пути:', 'color: purple; font-weight: bold;');
+    console.log('%c[AdminPanel] 📎 secretPath из URL:', 'color: purple;', secretPath);
+    
+    if (secretPath && checkInitialSetup()) {
+      console.log('%c[AdminPanel] 🆕 Первый визит! Сохраняем секретный путь из URL', 'color: green; font-weight: bold;');
+      // Сохраняем секретный путь из URL в localStorage
+      const currentSettings = getAdminSettings();
+      const updatedSettings = {
+        ...currentSettings,
+        adminSecretPath: secretPath,
+      };
+      saveAdminSettings(updatedSettings);
+      setSettings(updatedSettings);
       setNeedsInitialSetup(true);
-      return;
+      console.log('%c[AdminPanel] ✅ Сохранён adminSecretPath:', 'color: green;', secretPath);
     }
+  }, [secretPath]);
 
+  // Проверяем секретный путь и авторизацию
+  useEffect(() => {
+    console.log('%c[AdminPanel] 🔐 Проверка авторизации...', 'color: blue; font-weight: bold;');
+    console.log('%c[AdminPanel] 📎 secretPath:', 'color: blue;', secretPath);
+    console.log('%c[AdminPanel] 🔧 isValidSecretPath:', 'color: blue;', isValidSecretPath());
+    
     // Проверяем секретный путь
     if (!isValidSecretPath()) {
+      console.log('%c[AdminPanel] ❌ Неверный секретный путь! Редирект на главную', 'color: red; font-weight: bold;');
       navigate('/');
       return;
     }
 
+    console.log('%c[AdminPanel] ✅ Секретный путь верный', 'color: green;');
+    
     const auth = sessionStorage.getItem('admin_auth');
     if (auth === 'true') {
+      console.log('%c[AdminPanel] ✅ Пользователь авторизован', 'color: green;');
       setIsAuthenticated(true);
+    } else {
+      console.log('%c[AdminPanel] ⚠️ Пользователь не авторизован', 'color: orange;');
     }
   }, [secretPath]);
+
+  // Загружаем настройки из API при монтировании компонента
+  useEffect(() => {
+    console.log('%c[AdminPanel] 📥 Загрузка настроек из API...', 'color: cyan; font-weight: bold;');
+    
+    getAdminSettingsAsync().then(apiSettings => {
+      console.log('%c[AdminPanel] 📦 Настройки из API:', 'color: cyan;', apiSettings);
+      
+      // Сохраняем adminSecretPath из localStorage, если он был установлен через URL
+      const localSettings = getAdminSettings();
+      console.log('%c[AdminPanel] 💾 Настройки из localStorage:', 'color: cyan;', localSettings);
+      
+      const mergedSettings = {
+        ...apiSettings,
+        // ВАЖНО: adminSecretPath берём из localStorage, если он там есть
+        // Иначе используем значение из API
+        adminSecretPath: localSettings.adminSecretPath && localSettings.adminSecretPath !== 'admin' 
+          ? localSettings.adminSecretPath 
+          : apiSettings.adminSecretPath,
+        adminLogin: localSettings.adminLogin && localSettings.adminLogin !== 'admin' 
+          ? localSettings.adminLogin 
+          : apiSettings.adminLogin,
+        adminPassword: localSettings.adminPassword && localSettings.adminPassword !== 'admin123' 
+          ? localSettings.adminPassword 
+          : apiSettings.adminPassword,
+      };
+      
+      console.log('%c[AdminPanel] 🔀 Итоговые настройки:', 'color: cyan;', mergedSettings);
+      
+      setSettings(mergedSettings);
+      setMaxFileSizeInput(formatFileSize(mergedSettings.maxFileSize));
+      setLogoUrl(mergedSettings.logoType === 'url' ? mergedSettings.logo : '');
+    }).catch(error => {
+      console.error('%c[AdminPanel] ❌ Ошибка загрузки настроек из API:', 'color: red; font-weight: bold;', error);
+      // При ошибке используем локальные настройки
+      const localSettings = getAdminSettings();
+      setSettings(localSettings);
+      setMaxFileSizeInput(formatFileSize(localSettings.maxFileSize));
+      setLogoUrl(localSettings.logoType === 'url' ? localSettings.logo : '');
+    });
+  }, []);
 
   const handleInitialSetup = (e: React.FormEvent) => {
     e.preventDefault();

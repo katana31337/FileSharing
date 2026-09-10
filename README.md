@@ -23,6 +23,8 @@
 - [🔍 Диагностика проблем](TROUBLESHOOTING.md)
 - [🐛 Подробная отладка "Не найдено"](DEBUG_GUIDE.md)
 - [🔧 Исправление ошибки "column does not exist"](FIX_DB_SCHEMA.md)
+- [🔐 Исправление доступа к админ-панели](FIX_ADMIN_ACCESS.md)
+- [⚡ Быстрое исправление админки](QUICK_ADMIN_FIX.md)
 - [📦 Хранение файлов в /dataStore](STORAGE.md)
 - [🔔 Обработка ошибок](ERROR_HANDLING.md)
 - [⚡ Быстрая обработка ошибок](QUICK_ERRORS.md)

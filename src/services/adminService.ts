@@ -40,16 +40,38 @@ let useApi = true;
 export async function getAdminSettingsAsync(): Promise<AdminSettings> {
   if (useApi) {
     try {
-      const settings = await api.getAdminSettings();
-      // Объединяем с локальными настройками (логин/пароль хранятся локально)
+      const apiSettings = await api.getAdminSettings();
+      // Объединяем с локальными настройками
       const localSettings = getAdminSettingsLocal();
-      return {
-        ...settings,
-        adminLogin: localSettings.adminLogin,
-        adminPassword: localSettings.adminPassword,
+      
+      console.log('%c[AdminService] 📦 Настройки из API:', 'color: cyan;', apiSettings);
+      console.log('%c[AdminService] 💾 Настройки из localStorage:', 'color: cyan;', localSettings);
+      
+      const mergedSettings: AdminSettings = {
+        maxFileSize: apiSettings.maxFileSize,
+        minExpirationDays: apiSettings.minExpirationDays,
+        maxExpirationDays: apiSettings.maxExpirationDays,
+        defaultExpirationDays: apiSettings.defaultExpirationDays,
+        logo: apiSettings.logo,
+        logoType: apiSettings.logoType,
+        // ВАЖНО: adminSecretPath, adminLogin, adminPassword берём из localStorage,
+        // если они там установлены и отличаются от значений по умолчанию
+        adminSecretPath: localSettings.adminSecretPath && localSettings.adminSecretPath !== 'admin' 
+          ? localSettings.adminSecretPath 
+          : apiSettings.adminSecretPath,
+        adminLogin: localSettings.adminLogin && localSettings.adminLogin !== 'admin' 
+          ? localSettings.adminLogin 
+          : 'admin',
+        adminPassword: localSettings.adminPassword && localSettings.adminPassword !== 'admin123' 
+          ? localSettings.adminPassword 
+          : 'admin123',
       };
+      
+      console.log('%c[AdminService] 🔀 Итоговые настройки:', 'color: cyan;', mergedSettings);
+      
+      return mergedSettings;
     } catch (error) {
-      console.log('API недоступен, используем localStorage');
+      console.log('%c[AdminService] ❌ API недоступен, используем localStorage', 'color: red;', error);
       useApi = false;
     }
   }
