@@ -428,25 +428,26 @@ create_docker_compose() {
 CREATE TABLE IF NOT EXISTS files (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     short_url VARCHAR(10) UNIQUE NOT NULL,
-    original_name VARCHAR(255) NOT NULL,
-    stored_name VARCHAR(255) NOT NULL,
-    mime_type VARCHAR(100) NOT NULL,
+    name VARCHAR(500) NOT NULL,
     size BIGINT NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    mime_type VARCHAR(255) NOT NULL,
+    storage_path TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    download_count INTEGER DEFAULT 0
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    max_downloads INTEGER,
+    download_count INTEGER DEFAULT 0,
+    password VARCHAR(255)
 );
 
 -- Таблица для хранения текстовых сниппетов
 CREATE TABLE IF NOT EXISTS text_snippets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     short_url VARCHAR(10) UNIQUE NOT NULL,
-    title VARCHAR(255),
+    title VARCHAR(255) NOT NULL DEFAULT 'Untitled',
     content TEXT NOT NULL,
-    language VARCHAR(50) DEFAULT 'plaintext',
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    language VARCHAR(50) NOT NULL DEFAULT 'text',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    view_count INTEGER DEFAULT 0
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 -- Индексы для быстрого поиска
@@ -454,6 +455,14 @@ CREATE INDEX IF NOT EXISTS idx_files_short_url ON files(short_url);
 CREATE INDEX IF NOT EXISTS idx_files_expires_at ON files(expires_at);
 CREATE INDEX IF NOT EXISTS idx_text_snippets_short_url ON text_snippets(short_url);
 CREATE INDEX IF NOT EXISTS idx_text_snippets_expires_at ON text_snippets(expires_at);
+
+-- Функция очистки истёкших записей
+CREATE OR REPLACE FUNCTION cleanup_expired() RETURNS void AS $$
+BEGIN
+    DELETE FROM files WHERE expires_at < NOW();
+    DELETE FROM text_snippets WHERE expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql;
 SQLEOF
     
     # Создаём миграцию 002_admin_settings.sql
