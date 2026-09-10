@@ -13,6 +13,11 @@ export default function ShareView() {
   const [copied, setCopied] = useState(false);
   const [logo, setLogo] = useState<string>('');
 
+  // Отладка: логируем при монтировании компонента
+  console.log('%c[FileShare] 🚀 ShareView компонент загружен', 'color: purple; font-weight: bold;');
+  console.log('%c[FileShare] 📎 shortUrl из URL:', 'color: purple;', shortUrl);
+  console.log('%c[FileShare] 🌐 Текущий URL:', 'color: purple;', window.location.href);
+
   useEffect(() => {
     const settings = getAdminSettings();
     setLogo(settings.logo);
@@ -25,7 +30,15 @@ export default function ShareView() {
   const [textData, setTextData] = useState<{ content: string; title: string; language: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
-    if (!shortUrl) return;
+    console.log('%c[FileShare] ⚡ useEffect loadData запущен', 'color: orange; font-weight: bold;');
+    console.log('%c[FileShare] 📎 shortUrl:', 'color: orange;', shortUrl);
+    
+    if (!shortUrl) {
+      console.log('%c[FileShare] ❌ shortUrl пустой или undefined!', 'color: red; font-weight: bold;');
+      setError('Неверная ссылка');
+      setLoading(false);
+      return;
+    }
 
     const loadData = async () => {
       try {
