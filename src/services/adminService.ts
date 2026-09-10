@@ -1,3 +1,6 @@
+import * as api from './api';
+import type { ServerAdminSettings } from './api';
+
 export interface AdminSettings {
   maxFileSize: number; // в байтах
   minExpirationDays: number;
@@ -25,7 +28,40 @@ const DEFAULT_SETTINGS: AdminSettings = {
   logoType: 'none',
 };
 
+// Флаг для определения, использовать ли API
+let useApi = true;
+
+// ============================================
+// Получение настроек
+// ============================================
+// Сначала пробуем получить из API (PostgreSQL)
+// Если API недоступен, используем localStorage (fallback)
+// ============================================
+export async function getAdminSettingsAsync(): Promise<AdminSettings> {
+  if (useApi) {
+    try {
+      const settings = await api.getAdminSettings();
+      // Объединяем с локальными настройками (логин/пароль хранятся локально)
+      const localSettings = getAdminSettingsLocal();
+      return {
+        ...settings,
+        adminLogin: localSettings.adminLogin,
+        adminPassword: localSettings.adminPassword,
+      };
+    } catch (error) {
+      console.log('API недоступен, используем localStorage');
+      useApi = false;
+    }
+  }
+  return getAdminSettingsLocal();
+}
+
+// Синхронная версия для обратной совместимости
 export function getAdminSettings(): AdminSettings {
+  return getAdminSettingsLocal();
+}
+
+function getAdminSettingsLocal(): AdminSettings {
   try {
     const data = localStorage.getItem(SETTINGS_KEY);
     if (data) {
@@ -37,7 +73,49 @@ export function getAdminSettings(): AdminSettings {
   return DEFAULT_SETTINGS;
 }
 
+// ============================================
+// Сохранение настроек
+// ============================================
+// Сохраняем в API (PostgreSQL) и локально
+// Логин/пароль всегда хранятся локально для безопасности
+// ============================================
+export async function saveAdminSettingsAsync(settings: AdminSettings): Promise<AdminSettings> {
+  // Сохраняем логин/пароль локально (не отправляем на сервер)
+  const localSettings = { ...settings };
+  saveAdminSettingsLocal(localSettings);
+  
+  if (useApi) {
+    try {
+      // Отправляем на сервер только настройки без учётных данных
+      const serverSettings: ServerAdminSettings = {
+        maxFileSize: settings.maxFileSize,
+        minExpirationDays: settings.minExpirationDays,
+        maxExpirationDays: settings.maxExpirationDays,
+        defaultExpirationDays: settings.defaultExpirationDays,
+        adminSecretPath: settings.adminSecretPath,
+        logo: settings.logo,
+        logoType: settings.logoType,
+      };
+      const savedSettings = await api.updateAdminSettings(serverSettings);
+      return {
+        ...savedSettings,
+        adminLogin: settings.adminLogin,
+        adminPassword: settings.adminPassword,
+      };
+    } catch (error) {
+      console.log('API недоступен, сохраняем только локально');
+      useApi = false;
+    }
+  }
+  return settings;
+}
+
+// Синхронная версия для обратной совместимости
 export function saveAdminSettings(settings: AdminSettings): void {
+  saveAdminSettingsLocal(settings);
+}
+
+function saveAdminSettingsLocal(settings: AdminSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch (error) {
@@ -45,7 +123,34 @@ export function saveAdminSettings(settings: AdminSettings): void {
   }
 }
 
+// ============================================
+// Сброс настроек
+// ============================================
+export async function resetAdminSettingsAsync(): Promise<AdminSettings> {
+  if (useApi) {
+    try {
+      const settings = await api.resetAdminSettings();
+      const localSettings = getAdminSettingsLocal();
+      return {
+        ...settings,
+        adminLogin: localSettings.adminLogin,
+        adminPassword: localSettings.adminPassword,
+      };
+    } catch (error) {
+      console.log('API недоступен, сбрасываем только локально');
+      useApi = false;
+    }
+  }
+  resetAdminSettingsLocal();
+  return DEFAULT_SETTINGS;
+}
+
+// Синхронная версия для обратной совместимости
 export function resetAdminSettings(): void {
+  resetAdminSettingsLocal();
+}
+
+function resetAdminSettingsLocal(): void {
   localStorage.removeItem(SETTINGS_KEY);
 }
 

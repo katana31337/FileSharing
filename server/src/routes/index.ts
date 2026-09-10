@@ -6,6 +6,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { FileController } from '../controllers/FileController.js';
 import { TextController } from '../controllers/TextController.js';
+import { AdminSettingsController } from '../controllers/AdminSettingsController.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -17,6 +18,7 @@ const upload = multer({
 export function createRoutes(
   fileController: FileController,
   textController: TextController,
+  adminSettingsController: AdminSettingsController,
 ): Router {
   const router = Router();
 
@@ -30,6 +32,11 @@ export function createRoutes(
   router.post('/texts', textController.create);
   router.get('/texts/:shortUrl', textController.get);
   router.delete('/texts/:shortUrl', textController.delete);
+
+  // === Admin settings routes ===
+  router.get('/admin/settings', adminSettingsController.getSettings);
+  router.put('/admin/settings', adminSettingsController.updateSettings);
+  router.post('/admin/settings/reset', adminSettingsController.resetSettings);
 
   // === Health check ===
   router.get('/health', (_req, res) => {

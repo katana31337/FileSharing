@@ -430,6 +430,8 @@ services:
       POSTGRES_DB: \${DB_NAME:-fileshare}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql:ro
+      - ./server/migrations/002_admin_settings.sql:/docker-entrypoint-initdb.d/002_admin_settings.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \${DB_USER}"]
       interval: 5s

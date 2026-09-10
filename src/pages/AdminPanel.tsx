@@ -4,8 +4,11 @@ import { Settings, Save, RotateCcw, Lock, ArrowLeft, Upload, Link, Image, X, Use
 import { motion } from 'framer-motion';
 import { 
   getAdminSettings, 
+  getAdminSettingsAsync,
   saveAdminSettings, 
+  saveAdminSettingsAsync,
   resetAdminSettings,
+  resetAdminSettingsAsync,
   validateAdminCredentials,
   formatFileSize,
   parseFileSize,
@@ -30,6 +33,15 @@ export default function AdminPanel() {
   const [initialPassword, setInitialPassword] = useState('');
   const [showInitialPassword, setShowInitialPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Загружаем настройки из API при монтировании компонента
+  useEffect(() => {
+    getAdminSettingsAsync().then(settings => {
+      setSettings(settings);
+      setMaxFileSizeInput(formatFileSize(settings.maxFileSize));
+      setLogoUrl(settings.logoType === 'url' ? settings.logo : '');
+    });
+  }, []);
 
   // Проверяем, нужна ли первичная настройка
   const checkInitialSetup = () => {
@@ -138,7 +150,7 @@ export default function AdminPanel() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const maxFileSize = parseFileSize(maxFileSizeInput);
     
     if (maxFileSize === 0) {
@@ -162,9 +174,14 @@ export default function AdminPanel() {
       maxFileSize,
     };
 
-    saveAdminSettings(newSettings);
-    setSaveMessage('Настройки сохранены!');
-    setTimeout(() => setSaveMessage(''), 3000);
+    try {
+      const savedSettings = await saveAdminSettingsAsync(newSettings);
+      setSettings(savedSettings);
+      setSaveMessage('Настройки сохранены!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      alert('Ошибка сохранения настроек');
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,13 +235,16 @@ export default function AdminPanel() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('Сбросить все настройки к значениям по умолчанию?')) {
-      resetAdminSettings();
-      const defaultSettings = getAdminSettings();
-      setSettings(defaultSettings);
-      setMaxFileSizeInput(formatFileSize(defaultSettings.maxFileSize));
-      setLogoUrl('');
+      try {
+        const defaultSettings = await resetAdminSettingsAsync();
+        setSettings(defaultSettings);
+        setMaxFileSizeInput(formatFileSize(defaultSettings.maxFileSize));
+        setLogoUrl('');
+      } catch (error) {
+        alert('Ошибка сброса настроек');
+      }
     }
   };
 
