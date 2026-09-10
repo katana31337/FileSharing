@@ -71,14 +71,42 @@ print_info() {
     echo -e "${BLUE}ℹ $1${NC}"
 }
 
-# Generate random password
+# ============================================
+# Генерация случайного пароля
+# ============================================
+# Создаёт криптографически безопасный случайный пароль
+# указанной длины (по умолчанию 32 символа)
+# Использует openssl для генерации случайных данных
+# ============================================
 generate_password() {
     local length=${1:-32}
     openssl rand -base64 $((length * 3 / 4)) | tr -d '\n=' | head -c $length
 }
 
-# Generate random name in Docker style (adjective_noun_number)
+# ============================================
+# Генерация случайного имени пользователя БД
+# ============================================
+# Создаёт уникальное имя пользователя для PostgreSQL
+# в стиле имён контейнеров Docker (прилагательное_учёный_число)
+# 
+# Примеры генерируемых имён:
+#   - clever_feynman_427
+#   - happy_tesla_123
+#   - brave_einstein_999
+#
+# Зачем это нужно:
+#   - Уникальность: каждое имя случайно и уникально
+#   - Безопасность: сложно угадать имя пользователя БД
+#   - Читаемость: легче запомнить, чем случайный набор символов
+#   - Стиль Docker: привычный формат для разработчиков
+#
+# Где используется:
+#   - При установке создаётся пользователь БД с этим именем
+#   - Имя записывается в .env файл
+#   - Используется для подключения backend к PostgreSQL
+# ============================================
 generate_random_name() {
+    # Прилагательные (описательные слова)
     local adjectives=(
         "adoring" "affectionate" "agitated" "amazing" "angry" "awesome"
         "beautiful" "blissful" "bold" "brave" "busy" "charming"
@@ -99,6 +127,7 @@ generate_random_name() {
         "zealous" "zen"
     )
     
+    # Существительные (имена известных учёных и инженеров)
     local nouns=(
         "albattani" "allen" "almeida" "antonelli" "archimedes" "ardinghelli"
         "aryabhata" "austin" "babbage" "banach" "banzai" "bardeen"
@@ -141,10 +170,13 @@ generate_random_name() {
         "wright" "wu" "yalow" "yang" "zhukovsky"
     )
     
+    # Выбираем случайные индексы для прилагательного и существительного
     local adj_idx=$((RANDOM % ${#adjectives[@]}))
     local noun_idx=$((RANDOM % ${#nouns[@]}))
+    # Генерируем случайное число от 0 до 999
     local number=$((RANDOM % 1000))
     
+    # Возвращаем имя в формате: прилагательное_учёный_число
     echo "${adjectives[$adj_idx]}_${nouns[$noun_idx]}_$number"
 }
 
