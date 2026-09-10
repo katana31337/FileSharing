@@ -61,6 +61,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   }, [adminSettings.maxFileSize]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation(); // Предотвращаем всплытие события к родительскому элементу
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
       const validFiles = validateFiles(selectedFiles);
