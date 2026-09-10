@@ -1,5 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+
+// Mock framer-motion to disable animations in tests
+vi.mock('framer-motion', () => {
+  const createMotionComponent = (tag: string) => {
+    return React.forwardRef((props: any, ref: any) => {
+      const { initial, animate, exit, whileHover, whileTap, transition, layout, ...rest } = props;
+      return React.createElement(tag, { ...rest, ref });
+    });
+  };
+  
+  return {
+    motion: {
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      button: createMotionComponent('button'),
+      input: createMotionComponent('input'),
+      p: createMotionComponent('p'),
+    },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
+
 import { ToastContainer, useToast } from './Toast';
 
 describe('Toast Component', () => {
