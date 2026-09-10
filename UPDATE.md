@@ -179,6 +179,79 @@ docker compose exec db psql -U fileshare -d fileshare -c "SELECT * FROM admin_se
 2. Frontend подключается к Backend через proxy
 3. В консоли браузера нет ошибок CORS
 
+## Диагностика проблем с файлами
+
+Если после обновления файлы, загруженные ранее, не доступны по ссылке:
+
+### 1. Запустите диагностику
+
+```bash
+sudo bash diagnose.sh
+```
+
+Этот скрипт проверит:
+- Статус всех контейнеров
+- Здоровье backend и PostgreSQL
+- Доступность API через nginx
+- Наличие файлов в базе данных
+- Настройки админки
+
+### 2. Проверьте, что backend работает
+
+```bash
+curl http://localhost:3001/api/health
+```
+
+Должен вернуть:
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-...",
+  "version": "1.0.0"
+}
+```
+
+### 3. Проверьте, что API доступен через nginx
+
+```bash
+curl -k https://localhost/api/health
+```
+
+### 4. Проверьте консоль браузера (F12)
+
+- Откройте вкладку Console
+- Найдите сообщения о доступности API
+- Должно быть: "API доступен, используем backend"
+- Если видите "API недоступен, используем localStorage" — это проблема
+
+### 5. Проверьте файлы в базе данных
+
+```bash
+docker compose exec db psql -U fileshare -d fileshare -c "SELECT * FROM files;"
+```
+
+Если файлы есть в БД, но не доступны по ссылке:
+- Проверьте, что frontend использует API, а не localStorage
+- Проверьте логи nginx: `docker compose logs nginx`
+- Проверьте, что nginx проксирует `/api` на backend
+
+### 6. Полная переустановка
+
+Если проблемы не решаются, выполните полную переустановку:
+
+```bash
+# Остановка и удаление всех данных
+docker compose down -v
+
+# Пересборка образов
+docker compose build --no-cache
+
+# Запуск
+docker compose up -d
+```
+
+⚠️ **Внимание:** Это удалит все данные из базы данных и файловое хранилище!
+
 ## Дополнительная информация
 
 - [DEVELOPMENT.md](./DEVELOPMENT.md) — подробная инструкция по разработке
