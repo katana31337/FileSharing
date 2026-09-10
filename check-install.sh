@@ -12,16 +12,24 @@ echo "║                                                          ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
-# Переход в директорию установки
-INSTALL_DIR="/opt/fileshare"
+# Определяем директорию проекта
+# Если скрипт запущен из /opt/fileshare - используем её
+# Иначе используем текущую директорию
+if [ -d "/opt/fileshare" ] && [ -f "/opt/fileshare/docker-compose.yml" ]; then
+    INSTALL_DIR="/opt/fileshare"
+else
+    INSTALL_DIR="$(pwd)"
+fi
 
-if [ ! -d "$INSTALL_DIR" ]; then
-    echo "❌ Директория $INSTALL_DIR не найдена"
-    echo "   Запустите install.sh сначала"
+if [ ! -f "$INSTALL_DIR/docker-compose.yml" ]; then
+    echo "❌ Файл docker-compose.yml не найден в $INSTALL_DIR"
+    echo "   Убедитесь, что вы находитесь в директории проекта"
     exit 1
 fi
 
 cd "$INSTALL_DIR"
+echo "📁 Рабочая директория: $INSTALL_DIR"
+echo ""
 
 echo "📁 Директория установки: $INSTALL_DIR"
 echo ""

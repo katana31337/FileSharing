@@ -16,7 +16,12 @@ echo "╚═══════════════════════�
 echo ""
 
 # Переход в директорию проекта
-cd "$(dirname "$0")"
+# Поддерживает как production установку (/opt/fileshare), так и разработку (любая директория)
+if [ -d "/opt/fileshare" ] && [ -f "/opt/fileshare/docker-compose.yml" ]; then
+    cd "/opt/fileshare"
+else
+    cd "$(dirname "$0")"
+fi
 
 # Проверка наличия docker-compose.yml
 if [ ! -f "docker-compose.yml" ]; then

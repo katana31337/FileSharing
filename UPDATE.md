@@ -183,10 +183,19 @@ docker compose exec db psql -U fileshare -d fileshare -c "SELECT * FROM admin_se
 
 После обновления проверьте работоспособность:
 
+**Для production установки (/opt/fileshare):**
 ```bash
 cd /opt/fileshare
 sudo bash check-install.sh
 ```
+
+**Для разработки (любая директория с проектом):**
+```bash
+cd /path/to/FileSharing
+bash check-install.sh
+```
+
+> 💡 **Примечание:** Если вы делаете `git pull` в свою папку и запускаете оттуда — скрипты автоматически определят текущую директорию.
 
 Этот скрипт проверит:
 - Наличие всех необходимых файлов
