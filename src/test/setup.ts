@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { vi, afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { vi } from 'vitest';
 
 // Mock alert and confirm for happy-dom
 const mockAlert = vi.fn();
@@ -14,11 +13,6 @@ if (typeof window !== 'undefined') {
   window.alert = mockAlert;
   window.confirm = mockConfirm;
 }
-
-// Cleanup after each test to prevent memory leaks and unhandled errors
-afterEach(() => {
-  cleanup();
-});
 
 // Mock requestAnimationFrame for framer-motion
 if (typeof window !== 'undefined') {
