@@ -27,36 +27,46 @@ export default function ShareView() {
   useEffect(() => {
     if (!shortUrl) return;
 
-    // Try file first
-    const fileResult = getFileByShortUrl(shortUrl);
-    if (fileResult) {
-      setFileData({
-        dataUrl: fileResult.dataUrl,
-        name: fileResult.item.name,
-        size: fileResult.item.size,
-        mimeType: fileResult.item.mimeType,
-        type: fileResult.item.type,
-        expiresAt: fileResult.item.expiresAt,
-      });
-      setLoading(false);
-      return;
-    }
+    const loadData = async () => {
+      try {
+        // Try file first
+        const fileResult = await getFileByShortUrl(shortUrl);
+        if (fileResult) {
+          setFileData({
+            dataUrl: fileResult.dataUrl,
+            name: fileResult.item.name,
+            size: fileResult.item.size,
+            mimeType: fileResult.item.mimeType,
+            type: fileResult.item.type,
+            expiresAt: fileResult.item.expiresAt,
+          });
+          setLoading(false);
+          return;
+        }
 
-    // Try text
-    const textResult = getTextByShortUrl(shortUrl);
-    if (textResult) {
-      setTextData({
-        content: textResult.content,
-        title: textResult.title,
-        language: textResult.language,
-        expiresAt: textResult.expiresAt,
-      });
-      setLoading(false);
-      return;
-    }
+        // Try text
+        const textResult = await getTextByShortUrl(shortUrl);
+        if (textResult) {
+          setTextData({
+            content: textResult.content,
+            title: textResult.title,
+            language: textResult.language,
+            expiresAt: textResult.expiresAt,
+          });
+          setLoading(false);
+          return;
+        }
 
-    setError('Ссылка не найдена или срок хранения истёк');
-    setLoading(false);
+        setError('Ссылка не найдена или срок хранения истёк');
+      } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        setError('Ссылка не найдена или срок хранения истёк');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [shortUrl]);
 
   const handleDownload = () => {
