@@ -56,22 +56,70 @@ vi.mock('../services/adminService', () => ({
 }));
 
 describe('AdminPanel Component', () => {
+  const mockSettings = {
+    maxFileSize: 100 * 1024 * 1024,
+    minExpirationDays: 1,
+    maxExpirationDays: 30,
+    defaultExpirationDays: 7,
+    adminLogin: 'testadmin',
+    adminPassword: 'TestPass123!',
+    adminSecretPath: 'test-secret-path',
+    logo: '',
+    logoType: 'none' as const,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
+    // Устанавливаем настройки по умолчанию для тестов
+    localStorage.setItem('fileshare_admin_settings', JSON.stringify(mockSettings));
   });
 
   const renderWithRouter = (ui: React.ReactElement) => {
     return render(<BrowserRouter>{ui}</BrowserRouter>);
   };
 
+  describe('Первичная настройка', () => {
+    beforeEach(() => {
+      // Очищаем localStorage для тестов первичной настройки
+      localStorage.clear();
+    });
+
+    it('должен показать форму первичной настройки при первом посещении', async () => {
+      renderWithRouter(<AdminPanel />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Первичная настройка')).toBeInTheDocument();
+        expect(screen.getByText('Создайте учётные данные администратора')).toBeInTheDocument();
+      });
+    });
+
+    it('должен показать поля для создания логина и пароля', async () => {
+      renderWithRouter(<AdminPanel />);
+      
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Минимум 3 символа')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Минимум 12 символов')).toBeInTheDocument();
+      });
+    });
+
+    it('должен показать кнопку "Создать учётные данные"', async () => {
+      renderWithRouter(<AdminPanel />);
+      
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /создать учётные данные/i })).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Доступ по секретному URL', () => {
     it('должен показать форму логина при правильном секретном пути', async () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByText('Вход в админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Введите учётные данные')).toBeInTheDocument();
       });
     });
 
@@ -79,8 +127,8 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите пароль')).toBeInTheDocument();
       });
     });
 
@@ -107,10 +155,10 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите пароль')).toBeInTheDocument();
       });
 
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const toggleButton = screen.getByRole('button', { name: /показать пароль/i });
 
       expect(passwordInput).toHaveAttribute('type', 'password');
@@ -129,11 +177,11 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'wronglogin');
@@ -141,7 +189,9 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/неверный логин или пароль/i)).toBeInTheDocument();
+        expect(global.alert).toHaveBeenCalled();
+        const alertCall = (global.alert as any).mock.calls[0][0];
+        expect(alertCall).toMatch(/неверный логин или пароль/i);
       });
     });
 
@@ -150,11 +200,11 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'testadmin');
@@ -162,7 +212,9 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/неверный логин или пароль/i)).toBeInTheDocument();
+        expect(global.alert).toHaveBeenCalled();
+        const alertCall = (global.alert as any).mock.calls[0][0];
+        expect(alertCall).toMatch(/неверный логин или пароль/i);
       });
     });
 
@@ -171,11 +223,11 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'testadmin');
@@ -183,7 +235,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
     });
   });
@@ -194,11 +247,11 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'testadmin');
@@ -206,7 +259,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
     });
 
@@ -241,11 +295,11 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'testadmin');
@@ -262,12 +316,12 @@ describe('AdminPanel Component', () => {
       renderWithRouter(<AdminPanel />);
       
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Логин')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Введите логин')).toBeInTheDocument();
       });
 
       // Вход
-      const loginInput = screen.getByPlaceholderText('Логин');
-      const passwordInput = screen.getByPlaceholderText('Пароль');
+      const loginInput = screen.getByPlaceholderText('Введите логин');
+      const passwordInput = screen.getByPlaceholderText('Введите пароль');
       const submitButton = screen.getByRole('button', { name: /войти/i });
 
       await user.type(loginInput, 'testadmin');
@@ -275,7 +329,8 @@ describe('AdminPanel Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Настройки админ-панели')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Настройки сервиса FileShare')).toBeInTheDocument();
       });
 
       // Выход
@@ -284,7 +339,8 @@ describe('AdminPanel Component', () => {
 
       await waitFor(() => {
         expect(sessionStorage.getItem('admin_auth')).toBeNull();
-        expect(screen.getByText('Вход в админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Админ-панель')).toBeInTheDocument();
+        expect(screen.getByText('Введите учётные данные')).toBeInTheDocument();
       });
     });
   });

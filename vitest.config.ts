@@ -8,5 +8,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    pool: 'vmThreads',
+    poolOptions: {
+      vmThreads: {
+        isolate: false,
+      },
+    },
   },
 });
