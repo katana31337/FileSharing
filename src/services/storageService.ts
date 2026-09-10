@@ -12,29 +12,41 @@ let apiCheckInProgress = false;
 
 // Проверка доступности API с retry логикой
 export async function checkApiAvailability(retryCount = 0): Promise<boolean> {
-  if (apiCheckInProgress) return useApi;
+  if (apiCheckInProgress) {
+    // Ждём завершения текущей проверки
+    while (apiCheckInProgress) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return useApi;
+  }
   
   apiCheckInProgress = true;
   
   try {
     const available = await api.healthCheck();
     useApi = available;
-    console.log(`API ${available ? 'доступен' : 'недоступен'}, используем ${available ? 'backend' : 'localStorage'}`);
+    console.log(`%c[FileShare] API ${available ? '✅ доступен' : '❌ недоступен'}, используем ${available ? 'backend' : 'localStorage'}`, 
+      `color: ${available ? 'green' : 'red'}; font-weight: bold;`);
     
-    // Если API недоступен и это первая попытка, пробуем ещё раз через 2 секунды
-    if (!available && retryCount === 0) {
-      console.log('Повторная проверка API через 2 секунды...');
-      setTimeout(() => checkApiAvailability(1), 2000);
+    // Если API недоступен, пробуем ещё раз несколько раз
+    if (!available && retryCount < 3) {
+      console.log(`%c[FileShare] Повторная проверка API через 2 секунды... (попытка ${retryCount + 1}/3)`, 
+        'color: orange;');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      apiCheckInProgress = false;
+      return checkApiAvailability(retryCount + 1);
     }
     
     return available;
   } catch (error) {
-    console.error('Ошибка проверки API:', error);
+    console.error('%c[FileShare] Ошибка проверки API:', 'color: red; font-weight: bold;', error);
     useApi = false;
     
     // При ошибке тоже пробуем ещё раз
-    if (retryCount === 0) {
-      setTimeout(() => checkApiAvailability(1), 2000);
+    if (retryCount < 3) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      apiCheckInProgress = false;
+      return checkApiAvailability(retryCount + 1);
     }
     
     return false;
@@ -45,6 +57,22 @@ export async function checkApiAvailability(retryCount = 0): Promise<boolean> {
 
 // Инициализация при загрузке
 checkApiAvailability();
+
+// Экспортируем функцию для принудительной проверки
+export async function ensureApiAvailable(): Promise<boolean> {
+  if (useApi) {
+    // Проверяем ещё раз, что API действительно доступен
+    try {
+      const available = await api.healthCheck();
+      useApi = available;
+      return available;
+    } catch {
+      useApi = false;
+      return false;
+    }
+  }
+  return false;
+}
 
 function getItems<T>(key: string): T[] {
   try {
