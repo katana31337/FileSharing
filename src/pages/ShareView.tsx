@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Download, FileText, Image, File as FileIcon, Clock, ArrowLeft, Copy, Check, Zap } from 'lucide-react';
-import { getFileByShortUrl, getTextByShortUrl, formatFileSize, formatExpiration } from '../services/storageService';
+import { getFileByShortUrl, getTextByShortUrl, formatFileSize, formatExpiration, ensureApiAvailable } from '../services/storageService';
 import { getAdminSettings } from '../services/adminService';
 
 export default function ShareView() {
@@ -29,9 +29,18 @@ export default function ShareView() {
 
     const loadData = async () => {
       try {
+        console.log(`%c[FileShare] 🔍 Поиск файла/текста по ссылке: ${shortUrl}`, 'color: blue; font-weight: bold;');
+        
+        // Убеждаемся, что API доступен перед запросом
+        const apiAvailable = await ensureApiAvailable();
+        console.log(`%c[FileShare] API ${apiAvailable ? '✅ доступен' : '❌ недоступен'}`, 
+          `color: ${apiAvailable ? 'green' : 'red'}; font-weight: bold;`);
+        
         // Try file first
+        console.log(`%c[FileShare] 📁 Попытка получить файл...`, 'color: blue;');
         const fileResult = await getFileByShortUrl(shortUrl);
         if (fileResult) {
+          console.log(`%c[FileShare] ✅ Файл найден:`, 'color: green; font-weight: bold;', fileResult.item);
           setFileData({
             dataUrl: fileResult.dataUrl,
             name: fileResult.item.name,
@@ -43,10 +52,13 @@ export default function ShareView() {
           setLoading(false);
           return;
         }
+        console.log(`%c[FileShare] ❌ Файл не найден`, 'color: red;');
 
         // Try text
+        console.log(`%c[FileShare] 📝 Попытка получить текст...`, 'color: blue;');
         const textResult = await getTextByShortUrl(shortUrl);
         if (textResult) {
+          console.log(`%c[FileShare] ✅ Текст найден:`, 'color: green; font-weight: bold;', textResult);
           setTextData({
             content: textResult.content,
             title: textResult.title,
@@ -56,10 +68,11 @@ export default function ShareView() {
           setLoading(false);
           return;
         }
+        console.log(`%c[FileShare] ❌ Текст не найден`, 'color: red;');
 
         setError('Ссылка не найдена или срок хранения истёк');
       } catch (error) {
-        console.error('Ошибка загрузки:', error);
+        console.error('%c[FileShare] ❌ Ошибка загрузки:', 'color: red; font-weight: bold;', error);
         setError('Ссылка не найдена или срок хранения истёк');
       } finally {
         setLoading(false);
