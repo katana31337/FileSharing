@@ -59,9 +59,38 @@ export class FileController {
     } catch (error) {
       console.error('[FileController] ❌ Upload error:', error);
       console.error('[FileController] Error stack:', error instanceof Error ? error.stack : 'No stack');
-      res.status(500).json({ 
-        error: 'Ошибка загрузки файла',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      
+      // Определяем тип ошибки и возвращаем соответствующий статус
+      let statusCode = 500;
+      let errorMessage = 'Ошибка загрузки файла';
+      let errorDetails = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Ошибки базы данных
+      if (errorDetails.includes('column') && errorDetails.includes('does not exist')) {
+        statusCode = 500;
+        errorMessage = 'Ошибка базы данных';
+        errorDetails = 'Схема базы данных не соответствует ожидаемой. Обратитесь к администратору.';
+      }
+      // Ошибки хранилища
+      else if (errorDetails.includes('EACCES') || errorDetails.includes('permission')) {
+        statusCode = 500;
+        errorMessage = 'Ошибка доступа к хранилищу';
+        errorDetails = 'Нет прав для записи файлов. Обратитесь к администратору.';
+      }
+      else if (errorDetails.includes('ENOSPC')) {
+        statusCode = 507;
+        errorMessage = 'Недостаточно места';
+        errorDetails = 'На сервере закончилось свободное место. Обратитесь к администратору.';
+      }
+      // Ошибки валидации
+      else if (errorDetails.includes('Срок хранения')) {
+        statusCode = 400;
+        errorMessage = 'Неверные параметры';
+      }
+      
+      res.status(statusCode).json({ 
+        error: errorMessage,
+        details: errorDetails
       });
     }
   };

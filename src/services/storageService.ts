@@ -94,35 +94,32 @@ export async function saveFile(
   onProgress?: (progress: number) => void
 ): Promise<ShareItem> {
   if (useApi) {
-    try {
-      const response = await api.uploadFile(file, options.expiresInDays, onProgress);
-      
-      const item: ShareItem = {
-        id: response.id,
-        shortUrl: response.shortUrl,
-        type: file.type.startsWith('image/') ? 'image' : 'file',
-        name: response.name,
-        size: response.size,
-        mimeType: response.mimeType,
-        createdAt: new Date().toISOString(),
-        expiresAt: response.expiresAt,
-        expiresInDays: options.expiresInDays,
-        downloads: 0,
-      };
+    // ВАЖНО: При ошибке загрузки НЕ переключаемся на localStorage!
+    // Ошибка пробрасывается дальше, чтобы пользователь увидел проблему
+    const response = await api.uploadFile(file, options.expiresInDays, onProgress);
+    
+    const item: ShareItem = {
+      id: response.id,
+      shortUrl: response.shortUrl,
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      name: response.name,
+      size: response.size,
+      mimeType: response.mimeType,
+      createdAt: new Date().toISOString(),
+      expiresAt: response.expiresAt,
+      expiresInDays: options.expiresInDays,
+      downloads: 0,
+    };
 
-      // Сохраняем метаданные локально для истории
-      const files = getItems<ShareItem>(STORAGE_KEY_FILES);
-      files.push(item);
-      setItems(STORAGE_KEY_FILES, files);
+    // Сохраняем метаданные локально для истории
+    const files = getItems<ShareItem>(STORAGE_KEY_FILES);
+    files.push(item);
+    setItems(STORAGE_KEY_FILES, files);
 
-      return item;
-    } catch (error) {
-      console.error('API ошибка, переключаемся на localStorage:', error);
-      useApi = false;
-    }
+    return item;
   }
 
-  // Fallback на localStorage
+  // Fallback на localStorage (только если API изначально недоступен)
   return saveFileLocal(file, options, onProgress);
 }
 
