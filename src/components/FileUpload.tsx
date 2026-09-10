@@ -131,6 +131,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           type="file"
           multiple
           onChange={handleFileSelect}
+          onClick={(e) => e.stopPropagation()}
           className="hidden"
         />
         <motion.div
