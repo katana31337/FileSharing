@@ -419,6 +419,68 @@ setup_directory() {
 create_docker_compose() {
     print_step "4/8" "Создание конфигурации Docker..."
     
+    # Создаём директорию для миграций
+    mkdir -p server/migrations
+    
+    # Создаём миграцию 001_initial.sql
+    cat > server/migrations/001_initial.sql << 'SQLEOF'
+-- Таблица для хранения файлов
+CREATE TABLE IF NOT EXISTS files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    short_url VARCHAR(10) UNIQUE NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    stored_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    size BIGINT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    download_count INTEGER DEFAULT 0
+);
+
+-- Таблица для хранения текстовых сниппетов
+CREATE TABLE IF NOT EXISTS text_snippets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    short_url VARCHAR(10) UNIQUE NOT NULL,
+    title VARCHAR(255),
+    content TEXT NOT NULL,
+    language VARCHAR(50) DEFAULT 'plaintext',
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    view_count INTEGER DEFAULT 0
+);
+
+-- Индексы для быстрого поиска
+CREATE INDEX IF NOT EXISTS idx_files_short_url ON files(short_url);
+CREATE INDEX IF NOT EXISTS idx_files_expires_at ON files(expires_at);
+CREATE INDEX IF NOT EXISTS idx_text_snippets_short_url ON text_snippets(short_url);
+CREATE INDEX IF NOT EXISTS idx_text_snippets_expires_at ON text_snippets(expires_at);
+SQLEOF
+    
+    # Создаём миграцию 002_admin_settings.sql
+    cat > server/migrations/002_admin_settings.sql << 'SQLEOF'
+-- Таблица для хранения настроек админки
+CREATE TABLE IF NOT EXISTS admin_settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(255) UNIQUE NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Индекс для быстрого поиска по ключу
+CREATE INDEX IF NOT EXISTS idx_admin_settings_key ON admin_settings(key);
+
+-- Вставляем начальные значения по умолчанию
+INSERT INTO admin_settings (key, value) VALUES
+    ('max_file_size', '104857600'),
+    ('min_expiration_days', '1'),
+    ('max_expiration_days', '30'),
+    ('default_expiration_days', '7'),
+    ('admin_secret_path', 'admin'),
+    ('logo', ''),
+    ('logo_type', 'none')
+ON CONFLICT (key) DO NOTHING;
+SQLEOF
+    
     # Базовая часть (общая для всех)
     cat > docker-compose.yml << EOF
 services:
@@ -433,10 +495,11 @@ services:
       - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql:ro
       - ./server/migrations/002_admin_settings.sql:/docker-entrypoint-initdb.d/002_admin_settings.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U \${DB_USER} -d \${DB_NAME:-fileshare}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   backend:

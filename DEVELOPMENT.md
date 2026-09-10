@@ -82,6 +82,23 @@ Vite dev server проксирует запросы `/api` на backend:
 - Backend: `http://localhost:3001`
 - API запросы: `http://localhost:3000/api/*` → `http://localhost:3001/api/*`
 
+## Проверка установки
+
+После установки или обновления проверьте работоспособность:
+
+```bash
+cd /opt/fileshare
+sudo bash check-install.sh
+```
+
+Этот скрипт проверит:
+- Наличие всех необходимых файлов
+- Статус контейнеров Docker
+- Здоровье PostgreSQL
+- Доступность backend API
+- Работу nginx и HTTPS
+- Наличие таблиц в базе данных
+
 ## Устранение проблем
 
 ### Backend не запускается
