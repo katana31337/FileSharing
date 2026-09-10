@@ -20,21 +20,35 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   async save(file: Buffer | Readable, filename: string, _mimeType: string): Promise<string> {
+    console.log('[LocalStorageProvider] Начало сохранения файла:', { filename, basePath: this.basePath });
+    
     const storagePath = `files/${Date.now()}-${filename}`;
     const fullPath = join(this.basePath, storagePath);
+    console.log('[LocalStorageProvider] Путь для сохранения:', fullPath);
     
     // Ensure directory exists
     const dir = join(this.basePath, 'files');
+    console.log('[LocalStorageProvider] Создание директории:', dir);
     await mkdir(dir, { recursive: true });
+    console.log('[LocalStorageProvider] ✅ Директория создана');
 
-    if (Buffer.isBuffer(file)) {
-      const writeStream = createWriteStream(fullPath);
-      await pipeline(Readable.from(file), writeStream);
-    } else {
-      const writeStream = createWriteStream(fullPath);
-      await pipeline(file, writeStream);
+    try {
+      if (Buffer.isBuffer(file)) {
+        console.log('[LocalStorageProvider] Файл является Buffer, конвертируем в stream...');
+        const writeStream = createWriteStream(fullPath);
+        await pipeline(Readable.from(file), writeStream);
+      } else {
+        console.log('[LocalStorageProvider] Файл является Readable stream...');
+        const writeStream = createWriteStream(fullPath);
+        await pipeline(file, writeStream);
+      }
+      console.log('[LocalStorageProvider] ✅ Файл успешно записан на диск');
+    } catch (error) {
+      console.error('[LocalStorageProvider] ❌ Ошибка записи файла:', error);
+      throw error;
     }
 
+    console.log('[LocalStorageProvider] Возвращаем storagePath:', storagePath);
     return storagePath;
   }
 

@@ -11,17 +11,27 @@ export class PostgresFileRepository implements IFileRepository {
   constructor(private pool: Pool) {}
 
   async create(input: CreateFileInput, shortUrl: string): Promise<ShareItem> {
+    console.log('[PostgresFileRepository] Создание записи в БД:', { shortUrl, name: input.name, size: input.size });
+    
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + input.expiresInDays);
+    console.log('[PostgresFileRepository] Срок действия:', expiresAt);
 
-    const result = await this.pool.query(
-      `INSERT INTO files (id, short_url, name, size, mime_type, storage_path, expires_at, max_downloads, password)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
-      [shortUrl, input.name, input.size, input.mimeType, input.storagePath, expiresAt, input.maxDownloads || null, input.password || null],
-    );
+    try {
+      console.log('[PostgresFileRepository] Выполнение SQL INSERT...');
+      const result = await this.pool.query(
+        `INSERT INTO files (id, short_url, name, size, mime_type, storage_path, expires_at, max_downloads, password)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [shortUrl, input.name, input.size, input.mimeType, input.storagePath, expiresAt, input.maxDownloads || null, input.password || null],
+      );
+      console.log('[PostgresFileRepository] ✅ Запись успешно создана в БД');
 
-    return this.mapRow(result.rows[0]);
+      return this.mapRow(result.rows[0]);
+    } catch (error) {
+      console.error('[PostgresFileRepository] ❌ Ошибка создания записи в БД:', error);
+      throw error;
+    }
   }
 
   async findByShortUrl(shortUrl: string): Promise<ShareItem | null> {

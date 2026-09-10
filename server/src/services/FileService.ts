@@ -27,16 +27,21 @@ export class FileService {
     maxDownloads?: number,
     password?: string,
   ): Promise<ShareItem> {
+    console.log('[FileService] Начало загрузки файла:', { filename, size, mimeType, expiresInDays });
+    
     // Validate expiration (max 30 days)
     if (expiresInDays < 1 || expiresInDays > 30) {
       throw new Error('Срок хранения должен быть от 1 до 30 дней');
     }
 
     // Save file to storage
+    console.log('[FileService] Сохранение файла в хранилище...');
     const storagePath = await this.storageProvider.save(fileStream, filename, mimeType);
+    console.log('[FileService] ✅ Файл сохранён в хранилище:', storagePath);
 
     // Generate short URL
     const shortUrl = nanoid(7);
+    console.log('[FileService] Сгенерирован shortUrl:', shortUrl);
 
     // Save metadata to DB
     const input: CreateFileInput = {
@@ -49,7 +54,11 @@ export class FileService {
       password,
     };
 
-    return this.fileRepository.create(input, shortUrl);
+    console.log('[FileService] Сохранение метаданных в БД...');
+    const result = await this.fileRepository.create(input, shortUrl);
+    console.log('[FileService] ✅ Метаданные сохранены в БД');
+
+    return result;
   }
 
   /**
