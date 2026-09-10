@@ -37,7 +37,11 @@ async function main() {
   app.use('/api/', limiter);
 
   // Routes
-  const routes = createRoutes(container.fileController, container.textController);
+  const routes = createRoutes(
+    container.fileController,
+    container.textController,
+    container.adminSettingsController
+  );
   app.use('/api', routes);
 
   // Error handling

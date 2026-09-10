@@ -144,3 +144,60 @@ export async function healthCheck(): Promise<boolean> {
     return false;
   }
 }
+
+// ============================================
+// API для настроек админки
+// ============================================
+
+// Тип для настроек, которые хранятся на сервере (без учётных данных)
+export interface ServerAdminSettings {
+  maxFileSize: number;
+  minExpirationDays: number;
+  maxExpirationDays: number;
+  defaultExpirationDays: number;
+  adminSecretPath: string;
+  logo: string;
+  logoType: 'none' | 'file' | 'url';
+}
+
+// Получить настройки админки
+export async function getAdminSettings(): Promise<ServerAdminSettings> {
+  const response = await fetch(`${API_BASE_URL}/admin/settings`);
+  
+  if (!response.ok) {
+    throw new Error('Ошибка получения настроек');
+  }
+  
+  return response.json();
+}
+
+// Обновить настройки админки
+export async function updateAdminSettings(settings: Partial<ServerAdminSettings>): Promise<ServerAdminSettings> {
+  const response = await fetch(`${API_BASE_URL}/admin/settings`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(settings),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Ошибка обновления настроек');
+  }
+  
+  return response.json();
+}
+
+// Сбросить настройки админки
+export async function resetAdminSettings(): Promise<ServerAdminSettings> {
+  const response = await fetch(`${API_BASE_URL}/admin/settings/reset`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('Ошибка сброса настроек');
+  }
+  
+  return response.json();
+}
