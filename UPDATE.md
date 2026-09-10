@@ -179,6 +179,23 @@ docker compose exec db psql -U fileshare -d fileshare -c "SELECT * FROM admin_se
 2. Frontend подключается к Backend через proxy
 3. В консоли браузера нет ошибок CORS
 
+## Проверка после обновления
+
+После обновления проверьте работоспособность:
+
+```bash
+cd /opt/fileshare
+sudo bash check-install.sh
+```
+
+Этот скрипт проверит:
+- Наличие всех необходимых файлов
+- Статус контейнеров Docker
+- Здоровье PostgreSQL
+- Доступность backend API
+- Работу nginx и HTTPS
+- Наличие таблиц в базе данных
+
 ## Диагностика проблем с файлами
 
 Если после обновления файлы, загруженные ранее, не доступны по ссылке:

@@ -17,10 +17,11 @@ services:
       - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
       - ./server/migrations/002_admin_settings.sql:/docker-entrypoint-initdb.d/002_admin_settings.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fileshare"]
+      test: ["CMD-SHELL", "pg_isready -U fileshare -d fileshare"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   # Backend API Server
