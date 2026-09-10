@@ -120,6 +120,55 @@ DB_PASSWORD=fileshare_secret
 DB_NAME=fileshare
 ```
 
+### Файлы не доступны по ссылке
+
+Если после загрузки файла и перехода по ссылке появляется ошибка "Не найдено":
+
+1. **Запустите диагностику:**
+   ```bash
+   sudo bash diagnose.sh
+   ```
+
+2. **Проверьте, что backend работает:**
+   ```bash
+   curl http://localhost:3001/api/health
+   ```
+
+3. **Проверьте, что API доступен через nginx:**
+   ```bash
+   curl -k https://localhost/api/health
+   ```
+
+4. **Проверьте консоль браузера (F12):**
+   - Откройте вкладку Console
+   - Найдите сообщения о доступности API
+   - Должно быть: "API доступен, используем backend"
+
+5. **Проверьте файлы в базе данных:**
+   ```bash
+   docker compose exec db psql -U fileshare -d fileshare -c "SELECT * FROM files;"
+   ```
+
+6. **Если файлы есть в БД, но не доступны:**
+   - Проверьте, что frontend использует API, а не localStorage
+   - Проверьте логи nginx: `docker compose logs nginx`
+   - Проверьте, что nginx проксирует `/api` на backend
+
+### Очистка и переустановка
+
+Если проблемы не решаются, выполните полную переустановку:
+
+```bash
+# Остановка и удаление всех данных
+docker compose down -v
+
+# Пересборка образов
+docker compose build --no-cache
+
+# Запуск
+docker compose up -d
+```
+
 ## Production запуск
 
 Для production используйте Docker Compose:

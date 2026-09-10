@@ -8,13 +8,39 @@ const STORAGE_KEY_BLOBS = 'fileshare_blobs';
 
 // Флаг для определения, использовать ли API
 let useApi = true;
+let apiCheckInProgress = false;
 
-// Проверка доступности API при инициализации
-export async function checkApiAvailability(): Promise<boolean> {
-  const available = await api.healthCheck();
-  useApi = available;
-  console.log(`API ${available ? 'доступен' : 'недоступен'}, используем ${available ? 'backend' : 'localStorage'}`);
-  return available;
+// Проверка доступности API с retry логикой
+export async function checkApiAvailability(retryCount = 0): Promise<boolean> {
+  if (apiCheckInProgress) return useApi;
+  
+  apiCheckInProgress = true;
+  
+  try {
+    const available = await api.healthCheck();
+    useApi = available;
+    console.log(`API ${available ? 'доступен' : 'недоступен'}, используем ${available ? 'backend' : 'localStorage'}`);
+    
+    // Если API недоступен и это первая попытка, пробуем ещё раз через 2 секунды
+    if (!available && retryCount === 0) {
+      console.log('Повторная проверка API через 2 секунды...');
+      setTimeout(() => checkApiAvailability(1), 2000);
+    }
+    
+    return available;
+  } catch (error) {
+    console.error('Ошибка проверки API:', error);
+    useApi = false;
+    
+    // При ошибке тоже пробуем ещё раз
+    if (retryCount === 0) {
+      setTimeout(() => checkApiAvailability(1), 2000);
+    }
+    
+    return false;
+  } finally {
+    apiCheckInProgress = false;
+  }
 }
 
 // Инициализация при загрузке
