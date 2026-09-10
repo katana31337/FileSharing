@@ -398,9 +398,32 @@ docker compose exec nginx nginx -s reload
 # Каждые 12 часов проверяет необходимость продления
 ```
 
-## 📡 API Endpoints
+## 🔗 Интеграция Frontend с Backend
 
-### Файлы
+Frontend полностью интегрирован с backend API:
+
+### Как это работает:
+
+```
+Пользователь → Frontend → Nginx → Backend API → PostgreSQL + Storage
+```
+
+1. **Загрузка файла**: Frontend отправляет файл на `/api/files` через Nginx proxy
+2. **Backend** сохраняет файл в хранилище и метаданные в PostgreSQL
+3. **Генерируется короткая ссылка** (например, `/#/s/AbCdEfG`)
+4. **Открытие ссылки**: Frontend запрашивает файл через `/api/files/:shortUrl`
+5. **Backend** находит файл и возвращает его для скачивания
+
+### Преимущества:
+
+✅ **Файлы хранятся на сервере** — доступны из любого браузера/устройства  
+✅ **Можно делиться ссылками** — отправьте ссылку другу, и он сможет скачать файл  
+✅ **Автоматическая очистка** — файлы удаляются по истечении срока хранения  
+✅ **Fallback на localStorage** — если backend недоступен, используется локальное хранилище
+
+### API Endpoints
+
+#### Файлы
 | Метод | Путь | Описание |
 |-------|------|----------|
 | POST | `/api/files` | Загрузить файл (multipart) |
@@ -408,23 +431,34 @@ docker compose exec nginx nginx -s reload
 | GET | `/api/files/:shortUrl/download` | Скачать файл |
 | DELETE | `/api/files/:shortUrl` | Удалить файл |
 
-### Текст
+#### Текст
 | Метод | Путь | Описание |
 |-------|------|----------|
 | POST | `/api/texts` | Создать сниппет |
 | GET | `/api/texts/:shortUrl` | Получить сниппет |
 | DELETE | `/api/texts/:shortUrl` | Удалить сниппет |
 
-### Примеры
+#### Health Check
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/health` | Проверка работоспособности API |
+
+### Примеры использования API
 
 ```bash
 # Загрузить файл
-curl -X POST http://localhost:3001/api/files \
+curl -X POST https://your-domain.com/api/files \
   -F "file=@document.pdf" \
   -F "expiresInDays=7"
 
+# Получить информацию о файле
+curl https://your-domain.com/api/files/AbCdEfG
+
+# Скачать файл
+curl -O https://your-domain.com/api/files/AbCdEfG/download
+
 # Создать текстовый сниппет
-curl -X POST http://localhost:3001/api/texts \
+curl -X POST https://your-domain.com/api/texts \
   -H "Content-Type: application/json" \
   -d '{
     "title": "My Code",
@@ -432,6 +466,9 @@ curl -X POST http://localhost:3001/api/texts \
     "language": "javascript",
     "expiresInDays": 7
   }'
+
+# Получить текстовый сниппет
+curl https://your-domain.com/api/texts/XyZ123
 ```
 
 ## 🐳 Публикация на Docker Hub
@@ -825,6 +862,22 @@ GitHub Actions запускает тесты на Node.js 24.x.
   - ✅ Форматирование размера файлов (B, KB, MB, GB)
   - ✅ Парсинг строк размера файлов
 
+- **api.ts** — API клиент для backend
+  - ✅ Загрузка файлов (`uploadFile`)
+  - ✅ Получение информации о файле (`getFileInfo`)
+  - ✅ Скачивание файла (`downloadFile`)
+  - ✅ Создание текстового сниппета (`createTextSnippet`)
+  - ✅ Получение текстового сниппета (`getTextSnippet`)
+  - ✅ Проверка здоровья API (`healthCheck`)
+  - ✅ Fallback на localStorage при недоступности API
+
+- **storageService.ts** — сервис хранения с интеграцией API
+  - ✅ Автоматическое определение доступности API
+  - ✅ Загрузка файлов через API или localStorage
+  - ✅ Создание текстовых сниппетов через API или localStorage
+  - ✅ Получение файлов и сниппетов из API или localStorage
+  - ✅ Прозрачный fallback при недоступности backend
+
 #### 🎨 Компоненты (`src/components/`)
 - **Toast.test.tsx** — уведомления
   - ✅ Отображение заголовка и сообщения
@@ -865,6 +918,7 @@ GitHub Actions запускает тесты на Node.js 24.x.
 |--------|--------|--------|
 | Утилиты | 7 | ✅ Покрыто |
 | Сервисы | 12 | ✅ Покрыто |
+| API клиент | ✅ | ✅ Реализовано |
 | Компоненты | 15+ | ✅ Покрыто |
 | Страницы (AdminPanel) | 15+ | ✅ Покрыто |
 | **Всего** | **49+** | **✅** |
@@ -881,5 +935,5 @@ GitHub Actions запускает тесты на Node.js 24.x.
 - [ ] Превью файлов
 - [ ] WebSocket для прогресса загрузки
 - [ ] Хранение настроек админки в PostgreSQL
-- [ ] Интеграция frontend с backend API
+- [x] ~~Интеграция frontend с backend API~~ ✅ Реализовано
 - [ ] E2E тесты (Playwright/Cypress)

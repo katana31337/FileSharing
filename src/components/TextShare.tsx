@@ -40,16 +40,22 @@ export default function TextShare({ onShareComplete }: TextShareProps) {
     setExpiresInDays(settings.defaultExpirationDays);
   }, []);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!content.trim()) return;
     setIsSharing(true);
 
-    const options: UploadOptions = { expiresInDays };
-    const snippet = saveTextSnippet(content, title, language, options);
-    
-    setSharedSnippet(snippet);
-    onShareComplete(snippet);
-    setIsSharing(false);
+    try {
+      const options: UploadOptions = { expiresInDays };
+      const snippet = await saveTextSnippet(content, title, language, options);
+      
+      setSharedSnippet(snippet);
+      onShareComplete(snippet);
+    } catch (error) {
+      console.error('Ошибка создания сниппета:', error);
+      alert('Ошибка при создании сниппета. Попробуйте ещё раз.');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleNewSnippet = () => {
