@@ -8,11 +8,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    pool: 'vmThreads',
-    poolOptions: {
-      vmThreads: {
-        isolate: false,
-      },
+    isolate: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        'server/',
+        'dist/',
+      ],
     },
   },
 });

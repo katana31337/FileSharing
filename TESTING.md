@@ -2,11 +2,30 @@
 
 ## Тестовое окружение
 
-- **Vitest** - современный тестовый фреймворк для Vite
+- **Vitest 4** - современный тестовый фреймворк для Vite
 - **React Testing Library** - для тестирования React компонентов
 - **happy-dom** - быстрая эмуляция DOM окружения (альтернатива jsdom)
 - **@testing-library/jest-dom** - дополнительные matcher'ы для DOM элементов
+- **@vitest/coverage-v8** - генерация отчётов о покрытии кода
 - **Node.js** - тестирование на версии 24.x через GitHub Actions
+
+### Конфигурация Vitest 4
+
+В Vitest 4 конфигурация `poolOptions` была удалена. Теперь все опции пула находятся на верхнем уровне:
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    environment: 'happy-dom',
+    isolate: false,  // Было: poolOptions.vmThreads.isolate
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    },
+  },
+});
+```
 
 ## Запуск тестов
 
