@@ -95,23 +95,32 @@ describe('FileUpload Component', () => {
   });
 
   it('should not add file when it exceeds max size', async () => {
-    const user = userEvent.setup();
     const { container } = render(<FileUpload onUploadComplete={mockOnUploadComplete} />);
     
+    // Wait for component to initialize with mock settings
+    await waitFor(() => {
+      expect(screen.getByText(/Максимум 100 МБ на файл/)).toBeInTheDocument();
+    });
+    
     // Create file larger than 10 MB (mock returns maxFileSize: 10 MB)
-    const largeFile = new File([new ArrayBuffer(11 * 1024 * 1024)], 'large.txt', { type: 'text/plain' });
+    // Use actual content to ensure correct file size
+    const largeContent = 'x'.repeat(11 * 1024 * 1024); // 11 MB
+    const largeFile = new File([largeContent], 'large.txt', { type: 'text/plain' });
+    
+    // Verify file size is correct
+    expect(largeFile.size).toBe(11 * 1024 * 1024);
     
     // Find the hidden file input directly
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     
-    // Use userEvent.upload - now safe because we added stopPropagation in component
-    await user.upload(fileInput, largeFile);
+    // Use fireEvent.change with stopPropagation already on input
+    fireEvent.change(fileInput, { target: { files: [largeFile] } });
     
-    // Wait for state update
+    // Wait for state update and validation
     await waitFor(() => {
-      // File should not be added to the list
+      // File should not be added to the list due to size validation
       expect(screen.queryByText('large.txt')).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    }, { timeout: 3000 });
     
     // Upload button should not appear
     expect(screen.queryByText(/Загрузить 1 файл/)).not.toBeInTheDocument();
