@@ -46,7 +46,7 @@ services:
       STORAGE_PATH: /app/uploads
       CORS_ORIGIN: https://${DOMAIN}
     volumes:
-      - uploads_/app/uploads
+      - /dataStore/files:/app/uploads/files
     depends_on:
       db:
         condition: service_healthy
@@ -84,4 +84,3 @@ services:
 
 volumes:
   postgres_
-  uploads_

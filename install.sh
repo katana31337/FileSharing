@@ -395,8 +395,9 @@ ask_questions() {
 
 # Create installation directory
 setup_directory() {
-    print_step "3/8" "Создание директории установки..."
+    print_step "3/8" "Создание директорий..."
     
+    # Создание директории проекта
     if [ -d "$INSTALL_DIR" ]; then
         print_warning "Директория $INSTALL_DIR уже существует"
         read -p "Удалить и продолжить? [y/N]: " REMOVE_OLD
@@ -412,7 +413,14 @@ setup_directory() {
     mkdir -p "$INSTALL_DIR"
     cd "$INSTALL_DIR"
     
-    print_success "Директория создана: $INSTALL_DIR"
+    print_success "Директория проекта создана: $INSTALL_DIR"
+    
+    # Создание директории для хранения файлов
+    print_info "Создание директории для файлов: /dataStore/files"
+    mkdir -p /dataStore/files
+    chmod 755 /dataStore/files
+    chmod 777 /dataStore/files  # Для записи из контейнера
+    print_success "Директория /dataStore/files создана"
 }
 
 # Create docker-compose file
@@ -527,7 +535,7 @@ services:
       STORAGE_PATH: /app/uploads
       CORS_ORIGIN: https://\${DOMAIN}
     volumes:
-      - uploads_data:/app/uploads
+      - /dataStore/files:/app/uploads/files
     depends_on:
       db:
         condition: service_healthy
@@ -572,7 +580,6 @@ EOF
 
 volumes:
   postgres_data:
-  uploads_data:
 EOF
     
     print_success "docker-compose.yml создан (SSL: $SSL_TYPE)"
