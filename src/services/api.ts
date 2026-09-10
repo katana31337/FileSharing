@@ -42,6 +42,19 @@ export interface TextSnippetInfo {
   expiresAt: string;
 }
 
+// Класс для ошибок API с деталями
+export class ApiError extends Error {
+  status: number;
+  details?: string;
+  
+  constructor(message: string, status: number, details?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
 // Загрузка файла
 export async function uploadFile(
   file: File,
@@ -52,17 +65,35 @@ export async function uploadFile(
   formData.append('file', file);
   formData.append('expiresInDays', expiresInDays.toString());
 
+  console.log(`%c[API] 📤 POST /api/files`, 'color: blue; font-weight: bold;');
+  console.log(`%c[API] 📎 Файл: ${file.name}, размер: ${file.size} байт`, 'color: blue;');
+  
   const response = await fetch(`${API_BASE_URL}/files`, {
     method: 'POST',
     body: formData,
   });
 
+  console.log(`%c[API] 📨 Response status: ${response.status} ${response.statusText}`, 'color: blue;');
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Ошибка загрузки файла');
+    let errorMessage = 'Ошибка загрузки файла';
+    let errorDetails: string | undefined;
+    
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+      errorDetails = errorData.details;
+      console.log(`%c[API] ❌ Ошибка:`, 'color: red; font-weight: bold;', errorData);
+    } catch {
+      console.log(`%c[API] ❌ Ошибка (не удалось прочитать ответ)`, 'color: red;');
+    }
+    
+    throw new ApiError(errorMessage, response.status, errorDetails);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`%c[API] ✅ Файл загружен:`, 'color: green; font-weight: bold;', data);
+  return data;
 }
 
 // Получение информации о файле

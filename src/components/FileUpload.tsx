@@ -96,6 +96,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
     const options: UploadOptions = { expiresInDays };
     const newItems: ShareItem[] = [];
     const progress: Record<string, number> = {};
+    const errors: Array<{ fileName: string; error: string }> = [];
 
     // Инициализируем прогресс для всех файлов
     files.forEach(file => {
@@ -113,12 +114,50 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         });
         newItems.push(item);
       } catch (error) {
-        console.error(`Ошибка загрузки файла ${file.name}:`, error);
+        console.error(`%c[FileUpload] ❌ Ошибка загрузки файла ${file.name}:`, 'color: red; font-weight: bold;', error);
+        
+        // Формируем понятное сообщение об ошибке
+        let errorMessage = 'Неизвестная ошибка';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          // Если есть детали ошибки от API, добавляем их
+          if ('details' in error && error.details) {
+            errorMessage += `: ${error.details}`;
+          }
+        }
+        
+        errors.push({ fileName: file.name, error: errorMessage });
+        
+        // Показываем ошибку через toast
+        toast.error(
+          'Ошибка загрузки файла',
+          `"${file.name}": ${errorMessage}`
+        );
       }
     }
 
-    setUploadedItems(prev => [...newItems, ...prev]);
-    newItems.forEach(item => onUploadComplete(item));
+    // Если есть успешно загруженные файлы
+    if (newItems.length > 0) {
+      setUploadedItems(prev => [...newItems, ...prev]);
+      newItems.forEach(item => onUploadComplete(item));
+    }
+
+    // Если есть ошибки и нет успешных загрузок - показываем общее сообщение
+    if (errors.length > 0 && newItems.length === 0) {
+      toast.error(
+        'Не удалось загрузить файлы',
+        `Ошибок: ${errors.length}. Проверьте логи для деталей.`
+      );
+    }
+
+    // Если есть и успехи, и ошибки - показываем итог
+    if (errors.length > 0 && newItems.length > 0) {
+      toast.warning(
+        'Частичная загрузка',
+        `Успешно: ${newItems.length}, ошибок: ${errors.length}`
+      );
+    }
+
     setFiles([]);
     setUploadProgress({});
     setIsUploading(false);
