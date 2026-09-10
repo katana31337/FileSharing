@@ -254,10 +254,15 @@ function saveTextSnippetLocal(
 
 // Получение файла по короткой ссылке
 export async function getFileByShortUrl(shortUrl: string): Promise<{ item: ShareItem; dataUrl: string } | null> {
+  console.log(`%c[FileShare] 🔎 getFileByShortUrl вызван для: ${shortUrl}`, 'color: cyan; font-weight: bold;');
+  console.log(`%c[FileShare] 🔧 useApi = ${useApi}`, 'color: cyan;');
+  
   // Сначала пробуем через API
   if (useApi) {
     try {
+      console.log(`%c[FileShare] 📡 Запрос к API: getFileInfo(${shortUrl})`, 'color: cyan;');
       const info = await api.getFileInfo(shortUrl);
+      console.log(`%c[FileShare] ✅ API вернул:`, 'color: green;', info);
       
       const item: ShareItem = {
         id: info.id,
@@ -278,12 +283,18 @@ export async function getFileByShortUrl(shortUrl: string): Promise<{ item: Share
 
       return { item, dataUrl };
     } catch (error) {
+      console.log(`%c[FileShare] ❌ Ошибка API:`, 'color: red;', error);
       console.log('Файл не найден в API, проверяем localStorage');
     }
+  } else {
+    console.log(`%c[FileShare] ⚠️ useApi = false, используем localStorage`, 'color: orange;');
   }
 
   // Fallback на localStorage
-  return getFileByShortUrlLocal(shortUrl);
+  console.log(`%c[FileShare] 💾 Проверка localStorage...`, 'color: cyan;');
+  const result = getFileByShortUrlLocal(shortUrl);
+  console.log(`%c[FileShare] ${result ? '✅' : '❌'} localStorage:`, result ? 'найден' : 'не найден');
+  return result;
 }
 
 function getFileByShortUrlLocal(shortUrl: string): { item: ShareItem; dataUrl: string } | null {
@@ -305,9 +316,14 @@ function getFileByShortUrlLocal(shortUrl: string): { item: ShareItem; dataUrl: s
 
 // Получение текстового сниппета
 export async function getTextByShortUrl(shortUrl: string): Promise<TextSnippet | null> {
+  console.log(`%c[FileShare] 🔎 getTextByShortUrl вызван для: ${shortUrl}`, 'color: magenta; font-weight: bold;');
+  console.log(`%c[FileShare] 🔧 useApi = ${useApi}`, 'color: magenta;');
+  
   if (useApi) {
     try {
+      console.log(`%c[FileShare] 📡 Запрос к API: getTextSnippet(${shortUrl})`, 'color: magenta;');
       const snippet = await api.getTextSnippet(shortUrl);
+      console.log(`%c[FileShare] ✅ API вернул:`, 'color: green;', snippet);
       return {
         id: snippet.id,
         shortUrl: snippet.shortUrl,
@@ -319,11 +335,17 @@ export async function getTextByShortUrl(shortUrl: string): Promise<TextSnippet |
         expiresInDays: Math.ceil((new Date(snippet.expiresAt).getTime() - new Date(snippet.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
       };
     } catch (error) {
+      console.log(`%c[FileShare] ❌ Ошибка API:`, 'color: red;', error);
       console.log('Сниппет не найден в API, проверяем localStorage');
     }
+  } else {
+    console.log(`%c[FileShare] ⚠️ useApi = false, используем localStorage`, 'color: orange;');
   }
 
-  return getTextByShortUrlLocal(shortUrl);
+  console.log(`%c[FileShare] 💾 Проверка localStorage...`, 'color: magenta;');
+  const result = getTextByShortUrlLocal(shortUrl);
+  console.log(`%c[FileShare] ${result ? '✅' : '❌'} localStorage:`, result ? 'найден' : 'не найден');
+  return result;
 }
 
 function getTextByShortUrlLocal(shortUrl: string): TextSnippet | null {

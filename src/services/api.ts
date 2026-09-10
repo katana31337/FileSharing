@@ -67,7 +67,11 @@ export async function uploadFile(
 
 // Получение информации о файле
 export async function getFileInfo(shortUrl: string): Promise<FileInfo> {
-  const response = await fetch(`${API_BASE_URL}/files/${shortUrl}`);
+  const url = `${API_BASE_URL}/files/${shortUrl}`;
+  console.log(`%c[API] 📡 GET ${url}`, 'color: blue;');
+  
+  const response = await fetch(url);
+  console.log(`%c[API] 📨 Response status: ${response.status} ${response.statusText}`, 'color: blue;');
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -76,12 +80,18 @@ export async function getFileInfo(shortUrl: string): Promise<FileInfo> {
     throw new Error('Ошибка получения информации о файле');
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`%c[API] ✅ Response data:`, 'color: green;', data);
+  return data;
 }
 
 // Скачивание файла
 export async function downloadFile(shortUrl: string): Promise<Blob> {
-  const response = await fetch(`${API_BASE_URL}/files/${shortUrl}/download`);
+  const url = `${API_BASE_URL}/files/${shortUrl}/download`;
+  console.log(`%c[API] 📥 GET ${url}`, 'color: blue;');
+  
+  const response = await fetch(url);
+  console.log(`%c[API] 📨 Response status: ${response.status} ${response.statusText}`, 'color: blue;');
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -90,7 +100,9 @@ export async function downloadFile(shortUrl: string): Promise<Blob> {
     throw new Error('Ошибка скачивания файла');
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  console.log(`%c[API] ✅ Blob size: ${blob.size} bytes`, 'color: green;');
+  return blob;
 }
 
 // Создание текстового сниппета
@@ -123,7 +135,11 @@ export async function createTextSnippet(
 
 // Получение текстового сниппета
 export async function getTextSnippet(shortUrl: string): Promise<TextSnippetInfo> {
-  const response = await fetch(`${API_BASE_URL}/texts/${shortUrl}`);
+  const url = `${API_BASE_URL}/texts/${shortUrl}`;
+  console.log(`%c[API] 📡 GET ${url}`, 'color: magenta;');
+  
+  const response = await fetch(url);
+  console.log(`%c[API] 📨 Response status: ${response.status} ${response.statusText}`, 'color: magenta;');
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -132,7 +148,9 @@ export async function getTextSnippet(shortUrl: string): Promise<TextSnippetInfo>
     throw new Error('Ошибка получения сниппета');
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`%c[API] ✅ Response data:`, 'color: green;', data);
+  return data;
 }
 
 // Проверка здоровья API
