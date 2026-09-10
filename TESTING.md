@@ -6,7 +6,7 @@
 - **React Testing Library** - для тестирования React компонентов
 - **happy-dom** - быстрая эмуляция DOM окружения (альтернатива jsdom)
 - **@testing-library/jest-dom** - дополнительные matcher'ы для DOM элементов
-- **Node.js** - тестирование на версиях 22.x и 24.x через GitHub Actions
+- **Node.js** - тестирование на версии 24.x через GitHub Actions
 
 ## Запуск тестов
 
