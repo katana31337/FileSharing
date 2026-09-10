@@ -300,88 +300,9 @@ ask_questions() {
     done
     echo ""
     
-    # Admin login
-    echo -e "${CYAN}Введите логин администратора${NC}"
-    echo ""
-    while true; do
-        read -p "> " ADMIN_LOGIN
-        if [ -n "$ADMIN_LOGIN" ] && [[ "$ADMIN_LOGIN" =~ ^[a-zA-Z0-9_-]+$ ]] && [ ${#ADMIN_LOGIN} -ge 3 ]; then
-            break
-        fi
-        print_warning "Логин должен содержать минимум 3 символа (буквы, цифры, дефис, подчёркивание)"
-    done
-    echo ""
-    
-    # Admin password
-    echo -e "${CYAN}Создайте пароль администратора${NC}"
-    echo -e "${YELLOW}⚠️  Требования:${NC}"
-    echo "   • Минимум 12 символов"
-    echo "   • Содержит буквы (a-z, A-Z)"
-    echo "   • Содержит цифры (0-9)"
-    echo "   • Содержит спецсимволы (!@#\$%^&* и др.)"
-    echo ""
-    echo -e "${CYAN}Выберите способ:${NC}"
-    echo "  1) Ввести пароль вручную"
-    echo "  2) Сгенерировать безопасный пароль автоматически"
-    echo ""
-    while true; do
-        read -p "Выберите [1-2]: " PASSWORD_CHOICE
-        case $PASSWORD_CHOICE in
-            1)
-                while true; do
-                    read -s -p "> " ADMIN_PASSWORD
-                    echo ""
-                    
-                    # Validate password
-                    if [ ${#ADMIN_PASSWORD} -lt 12 ]; then
-                        print_warning "Пароль должен содержать минимум 12 символов"
-                        continue
-                    fi
-                    
-                    if ! [[ "$ADMIN_PASSWORD" =~ [a-z] ]]; then
-                        print_warning "Пароль должен содержать строчные буквы (a-z)"
-                        continue
-                    fi
-                    
-                    if ! [[ "$ADMIN_PASSWORD" =~ [A-Z] ]]; then
-                        print_warning "Пароль должен содержать заглавные буквы (A-Z)"
-                        continue
-                    fi
-                    
-                    if ! [[ "$ADMIN_PASSWORD" =~ [0-9] ]]; then
-                        print_warning "Пароль должен содержать цифры (0-9)"
-                        continue
-                    fi
-                    
-                    if ! [[ "$ADMIN_PASSWORD" =~ [^a-zA-Z0-9] ]]; then
-                        print_warning "Пароль должен содержать спецсимволы (!@#\$%^&* и др.)"
-                        continue
-                    fi
-                    
-                    # Confirm password
-                    read -s -p "Повторите пароль: " ADMIN_PASSWORD_CONFIRM
-                    echo ""
-                    
-                    if [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; then
-                        print_warning "Пароли не совпадают"
-                        continue
-                    fi
-                    
-                    break
-                done
-                break
-                ;;
-            2)
-                ADMIN_PASSWORD=$(generate_password 16)
-                print_success "Сгенерирован пароль: $ADMIN_PASSWORD"
-                print_warning "Сохраните этот пароль в безопасном месте!"
-                break
-                ;;
-            *)
-                print_warning "Пожалуйста, введите 1 или 2"
-                ;;
-        esac
-    done
+    # Admin credentials will be set on first login
+    echo -e "${CYAN}Учётные данные администратора${NC}"
+    echo -e "${YELLOW}💡  Логин и пароль будут созданы при первом входе в админ-панель${NC}"
     echo ""
     
     # Generate database credentials
@@ -716,8 +637,6 @@ SSL_TYPE=$SSL_TYPE
 
 # Admin Panel
 ADMIN_SECRET_PATH=$ADMIN_SECRET_PATH
-ADMIN_LOGIN=$ADMIN_LOGIN
-ADMIN_PASSWORD=$ADMIN_PASSWORD
 EOF
     
     chmod 600 .env
@@ -870,10 +789,9 @@ print_summary() {
     echo -e "${CYAN}🔐 Админ-панель:${NC}"
     echo ""
     echo -e "   URL:      ${GREEN}https://$DOMAIN/#/$ADMIN_SECRET_PATH${NC}"
-    echo -e "   Логин:    ${YELLOW}$ADMIN_LOGIN${NC}"
-    echo -e "   Пароль:   ${YELLOW}$ADMIN_PASSWORD${NC}"
     echo ""
-    echo -e "${YELLOW}⚠️  Сохраните эти данные в безопасном месте!${NC}"
+    echo -e "${YELLOW}💡 При первом входе в админ-панель вам будет предложено создать логин и пароль.${NC}"
+    echo -e "${YELLOW}   Сохраните их в безопасном месте после создания!${NC}"
     echo ""
     echo -e "${CYAN}🗄️  База данных:${NC}"
     echo ""
