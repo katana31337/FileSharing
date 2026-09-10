@@ -145,10 +145,16 @@ describe('FileUpload Component', () => {
     
     expect(screen.getByText('test.txt')).toBeInTheDocument();
     
-    const removeButton = screen.getByRole('button', { name: '' });
-    await user.click(removeButton);
+    // Find the file container by file name, then find the remove button inside it
+    const fileContainer = screen.getByText('test.txt').closest('.bg-white');
+    const removeButton = fileContainer?.querySelector('button');
     
-    expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
+    expect(removeButton).toBeTruthy();
+    await user.click(removeButton!);
+    
+    await waitFor(() => {
+      expect(screen.queryByText('test.txt')).not.toBeInTheDocument();
+    });
   });
 
   it('should copy link to clipboard', async () => {
