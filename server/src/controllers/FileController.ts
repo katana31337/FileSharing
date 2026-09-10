@@ -4,6 +4,7 @@
 // ==========================================
 
 import { Request, Response } from 'express';
+import { Readable } from 'stream';
 import { FileService } from '../services/FileService.js';
 
 export class FileController {
@@ -22,8 +23,20 @@ export class FileController {
       const { expiresInDays, maxDownloads, password } = req.body;
       const days = parseInt(expiresInDays) || 7;
 
+      console.log('[FileController] Получен файл:', {
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        hasBuffer: !!req.file.buffer,
+        hasStream: !!req.file.stream
+      });
+
+      const fileStream = req.file.stream || Readable.from(req.file.buffer);
+      
+      console.log('[FileController] Вызов fileService.uploadFile...');
+      
       const item = await this.fileService.uploadFile(
-        req.file.stream || require('stream').Readable.from(req.file.buffer),
+        fileStream,
         req.file.originalname,
         req.file.size,
         req.file.mimetype,
@@ -31,6 +44,8 @@ export class FileController {
         maxDownloads ? parseInt(maxDownloads) : undefined,
         password || undefined,
       );
+
+      console.log('[FileController] Файл успешно загружен:', item.shortUrl);
 
       res.status(201).json({
         id: item.id,
@@ -42,8 +57,12 @@ export class FileController {
         downloadUrl: `/s/${item.shortUrl}`,
       });
     } catch (error) {
-      console.error('Upload error:', error);
-      res.status(500).json({ error: 'Ошибка загрузки файла' });
+      console.error('[FileController] ❌ Upload error:', error);
+      console.error('[FileController] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      res.status(500).json({ 
+        error: 'Ошибка загрузки файла',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   };
 
