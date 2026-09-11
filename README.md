@@ -38,6 +38,10 @@ npm run build
 ### Полная миграция
 - [🎉 Полная миграция в PostgreSQL](FULL_MIGRATION.md) — все данные перенесены из localStorage в БД
 
+### Мониторинг и статус
+- [🔍 Компонент BackendStatus](BACKEND_STATUS.md) — отслеживание доступности backend
+- [⚡ Быстрая настройка мониторинга](QUICK_BACKEND_STATUS.md) — краткая инструкция
+
 ### Хранение файлов
 - [📦 Хранение файлов в /dataStore](STORAGE.md) — настройка внешнего хранилища
 
