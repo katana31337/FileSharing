@@ -19,7 +19,6 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
     const file = e.target.files?.[0];
     if (!file || !settings) return;
 
-    // Проверка размера файла
     if (file.size > settings.maxFileSize) {
       const maxSizeFormatted = formatFileSize(settings.maxFileSize);
       const fileSizeFormatted = formatFileSize(file.size);
@@ -44,16 +43,16 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
   };
 
   if (!settings) {
-    return <div>Загрузка...</div>;
+    return <div className="text-center py-8">Загрузка...</div>;
   }
 
   return (
     <div className="w-full">
       <div
         onClick={handleClick}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
+        className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-all duration-200"
       >
-        <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+        <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
         <p className="text-lg font-medium text-gray-700 mb-2">
           Нажмите для выбора файла
         </p>

@@ -14,8 +14,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/migrations/001_initial.sql:/docker-entrypoint-initdb.d/001_initial.sql
-      - ./server/migrations/002_admin_settings.sql:/docker-entrypoint-initdb.d/002_admin_settings.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fileshare -d fileshare"]
       interval: 5s

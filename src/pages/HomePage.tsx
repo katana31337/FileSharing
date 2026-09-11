@@ -1,141 +1,195 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Upload, Zap, Shield, Clock, Settings } from 'lucide-react';
 import FileUpload from '../components/FileUpload';
 import ExpirationSelector from '../components/ExpirationSelector';
-import { getAdminSettings } from '../services/adminService';
-import { 
-  getCurrentSession, 
-  getSessionHistory, 
-  addFileToHistory,
-  getSessionInfo,
-  type SessionHistory,
-  type SessionFile
-} from '../services/sessionService';
+import { getAdminSettings, type AdminSettings } from '../services/adminService';
+import { getCurrentSession, getSessionHistory, type SessionHistory } from '../services/sessionService';
 
 export default function HomePage() {
-  const [settings, setSettings] = useState<any>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [expirationDays, setExpirationDays] = useState(7);
   const [sessionHistory, setSessionHistory] = useState<SessionHistory | null>(null);
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Инициализация сессии и настроек при загрузке страницы
   useEffect(() => {
     const init = async () => {
       const loadedSettings = await getAdminSettings();
       setSettings(loadedSettings);
       setExpirationDays(loadedSettings.defaultExpirationDays);
       
-      const session = await getCurrentSession();
+      await getCurrentSession();
       const history = await getSessionHistory();
-      const info = await getSessionInfo();
-      
       setSessionHistory(history);
-      setSessionInfo(info);
       setLoading(false);
-      
-      console.log('%c[HomePage] 🎯 Сессия инициализирована:', 'color: purple; font-weight: bold;', {
-        sessionId: session.id,
-        expiresAt: session.expiresAt,
-        filesCount: history.files.length,
-        textsCount: history.texts.length,
-      });
     };
     
     init();
   }, []);
 
-  const handleFileSelect = async (file: File) => {
-    setSelectedFile(file);
-    
+  const handleFileSelect = (file: File) => {
+    console.log('Выбран файл:', file.name);
     // Здесь будет логика загрузки файла на сервер
-    // Пока просто добавляем в историю сессии
-    const mockShortUrl = `test_${Date.now()}`;
-    const expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000).toISOString();
-    
-    await addFileToHistory({
-      shortUrl: mockShortUrl,
-      name: file.name,
-      size: file.size,
-      expiresAt,
-    });
-    
-    // Обновляем историю
-    const updatedHistory = await getSessionHistory();
-    const updatedInfo = await getSessionInfo();
-    
-    setSessionHistory(updatedHistory);
-    setSessionInfo(updatedInfo);
-    
-    console.log('Выбран файл:', file.name, 'Срок хранения:', expirationDays, 'дней');
   };
 
-  if (loading) {
+  if (loading || !settings) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-          <p className="text-center text-gray-500">Загрузка...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">FileShare</h1>
-        
-        {/* Информация о сессии */}
-        {sessionInfo && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Сессия:</span> {sessionInfo.id.substring(0, 20)}...
-            </p>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Истекает:</span> {new Date(sessionInfo.expiresAt).toLocaleDateString('ru-RU')}
-            </p>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Загружено файлов:</span> {sessionInfo.filesCount}
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">FileShare</h1>
+            </div>
+            <button
+              onClick={() => navigate('/admin')}
+              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Админ-панель"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
-        )}
-        
-        <div className="space-y-6">
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Быстрый обмен файлами
+          </h2>
+          <p className="text-xl text-gray-600">
+            Загружайте файлы и делитесь короткими ссылками
+          </p>
+        </motion.div>
+
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+          >
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Безопасно</h3>
+            <p className="text-gray-600">Файлы автоматически удаляются по истечении срока</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+          >
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+              <Clock className="w-6 h-6 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Гибкие сроки</h3>
+            <p className="text-gray-600">От {settings.minExpirationDays} до {settings.maxExpirationDays} дней хранения</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+          >
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+              <Upload className="w-6 h-6 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Быстро</h3>
+            <p className="text-gray-600">Загрузка до {(settings.maxFileSize / 1024 / 1024).toFixed(0)} MB</p>
+          </motion.div>
+        </div>
+
+        {/* Upload Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8"
+        >
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Загрузить файл
+          </h3>
+          
           <FileUpload onFileSelect={handleFileSelect} />
           
-          {selectedFile && (
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <p className="font-medium">Выбранный файл:</p>
-              <p className="text-sm text-gray-600">{selectedFile.name}</p>
-            </div>
-          )}
-          
-          <ExpirationSelector value={expirationDays} onChange={setExpirationDays} />
-          
-          {/* История загрузок */}
-          {sessionHistory && sessionHistory.files.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-bold mb-4">История загрузок</h2>
-              <div className="space-y-2">
-                {sessionHistory.files.map((file: SessionFile, index: number) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <p className="font-medium text-sm">{file.file_name}</p>
-                    <p className="text-xs text-gray-500">
+          <div className="mt-6">
+            <ExpirationSelector value={expirationDays} onChange={setExpirationDays} />
+          </div>
+        </motion.div>
+
+        {/* Session History */}
+        {sessionHistory && sessionHistory.files.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8"
+          >
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+              История загрузок
+            </h3>
+            <div className="space-y-3">
+              {sessionHistory.files.slice(0, 5).map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{file.file_name}</p>
+                    <p className="text-sm text-gray-500">
                       Загружен: {new Date(file.uploaded_at).toLocaleString('ru-RU')}
                     </p>
-                    <p className="text-xs text-gray-500">
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
                       Истекает: {new Date(file.expires_at).toLocaleDateString('ru-RU')}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Ссылка: /s/{file.short_url}
-                    </p>
+                    <button
+                      onClick={() => navigate(`/s/${file.short_url}`)}
+                      className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                    >
+                      Открыть →
+                    </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
+          </motion.div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <p className="text-center text-gray-500">
+            FileShare v1.0.17 — Быстрый обмен файлами
+          </p>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

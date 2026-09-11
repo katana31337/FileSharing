@@ -12,7 +12,7 @@ export default function BackendStatus() {
       try {
         const response = await fetch(`${API_BASE_URL}/health`, {
           method: 'GET',
-          signal: AbortSignal.timeout(5000), // Таймаут 5 секунд
+          signal: AbortSignal.timeout(5000),
         });
 
         if (response.ok) {
@@ -26,16 +26,12 @@ export default function BackendStatus() {
       }
     };
 
-    // Проверяем сразу
     checkBackend();
-
-    // Проверяем каждые 30 секунд
     const interval = setInterval(checkBackend, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Не показываем, если статус "онлайн" или пользователь закрыл предупреждение
   if (status === 'online' || dismissed) {
     return null;
   }
@@ -53,7 +49,6 @@ export default function BackendStatus() {
     );
   }
 
-  // Статус "offline"
   return (
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg">

@@ -7,31 +7,18 @@ import { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { FileService } from '../services/FileService.js';
 
-// Определяем тип файла из multer
-interface UploadedFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-  stream?: Readable;
-}
-
-// Тип Request с файлом через intersection
-type RequestWithFile = Omit<Request, 'file'> & {
-  file?: UploadedFile;
-};
-
 export class FileController {
   constructor(private fileService: FileService) {}
 
   /**
    * POST /api/files — загрузка файла
    */
-  upload = async (req: RequestWithFile, res: Response): Promise<void> => {
+  upload = async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.file) {
+      // multer добавляет file к request
+      const file = (req as any).file;
+      
+      if (!file) {
         res.status(400).json({ error: 'Файл не предоставлен' });
         return;
       }
@@ -40,22 +27,22 @@ export class FileController {
       const days = parseInt(expiresInDays) || 7;
 
       console.log('[FileController] Получен файл:', {
-        originalname: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
-        hasBuffer: !!req.file.buffer,
-        hasStream: !!req.file.stream
+        originalname: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        hasBuffer: !!file.buffer,
+        hasStream: !!file.stream
       });
 
-      const fileStream = req.file.stream || Readable.from(req.file.buffer);
+      const fileStream = file.stream || Readable.from(file.buffer);
       
       console.log('[FileController] Вызов fileService.uploadFile...');
       
       const item = await this.fileService.uploadFile(
         fileStream,
-        req.file.originalname,
-        req.file.size,
-        req.file.mimetype,
+        file.originalname,
+        file.size,
+        file.mimetype,
         days,
         maxDownloads ? parseInt(maxDownloads) : undefined,
         password || undefined,
