@@ -6,11 +6,21 @@
 import { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { FileService } from '../services/FileService.js';
-import { File as MulterFile } from 'multer';
+
+// Определяем тип файла из multer
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+  stream?: Readable;
+}
 
 // Расширяем тип Request для multer
 interface RequestWithFile extends Request {
-  file?: MulterFile;
+  file?: UploadedFile;
 }
 
 export class FileController {
