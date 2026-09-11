@@ -3,10 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   getAdminSettings, 
   saveAdminSettings, 
-  formatFileSize, 
-  parseFileSize,
   validateCredentials,
   hasCredentials,
+  formatFileSize, 
+  parseFileSize,
   type AdminSettings 
 } from '../services/adminService';
 
@@ -22,7 +22,6 @@ export default function AdminPanel() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Загрузка настроек при монтировании
   useEffect(() => {
     const init = async () => {
       const loadedSettings = await getAdminSettings();
@@ -30,7 +29,6 @@ export default function AdminPanel() {
       setMaxFileSizeInput(formatFileSize(loadedSettings.maxFileSize));
       setExpirationButtonsInput(loadedSettings.expirationButtons.join(', '));
       
-      // Проверяем, настроены ли учётные данные
       const hasCreds = await hasCredentials();
       setNeedsSetup(!hasCreds);
       setLoading(false);
@@ -39,9 +37,8 @@ export default function AdminPanel() {
     init();
   }, []);
 
-  // Проверка секретного пути
   useEffect(() => {
-    if (settings && secretPath !== settings.adminSecretPath && settings.adminSecretPath) {
+    if (settings && secretPath && settings.adminSecretPath && secretPath !== settings.adminSecretPath) {
       navigate('/');
     }
   }, [settings, secretPath, navigate]);
@@ -105,7 +102,6 @@ export default function AdminPanel() {
       return;
     }
 
-    // Парсинг кнопок срока хранения
     const buttons = expirationButtonsInput
       .split(',')
       .map(s => parseInt(s.trim()))
@@ -149,9 +145,7 @@ export default function AdminPanel() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-lg">Загрузка...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -166,36 +160,35 @@ export default function AdminPanel() {
     );
   }
 
-  // Первичная настройка
   if (needsSetup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-6">Первичная настройка</h1>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+          <h1 className="text-2xl font-bold mb-6 text-gray-900">Первичная настройка</h1>
           <form onSubmit={handleSetup} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Логин</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Логин</label>
               <input
                 type="text"
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Минимум 3 символа"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Пароль</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Пароль</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Минимум 12 символов"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
             >
               Создать учётные данные
             </button>
@@ -205,34 +198,33 @@ export default function AdminPanel() {
     );
   }
 
-  // Форма входа
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-6">Вход в админ-панель</h1>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+          <h1 className="text-2xl font-bold mb-6 text-gray-900">Вход в админ-панель</h1>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Логин</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Логин</label>
               <input
                 type="text"
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Пароль</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Пароль</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
             >
               Войти
             </button>
@@ -242,22 +234,21 @@ export default function AdminPanel() {
     );
   }
 
-  // Админ-панель
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6">Настройки админ-панели</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 py-8">
+      <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-xl">
+        <h1 className="text-2xl font-bold mb-6 text-gray-900">Настройки админ-панели</h1>
         
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Максимальный размер файла
             </label>
             <input
               type="text"
               value={maxFileSizeInput}
               onChange={(e) => setMaxFileSizeInput(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="100MB"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -266,53 +257,53 @@ export default function AdminPanel() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Минимальный срок хранения (дни)
             </label>
             <input
               type="number"
               value={settings.minExpirationDays}
               onChange={(e) => setSettings({ ...settings, minExpirationDays: parseInt(e.target.value) || 1 })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               min="1"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Максимальный срок хранения (дни)
             </label>
             <input
               type="number"
               value={settings.maxExpirationDays}
               onChange={(e) => setSettings({ ...settings, maxExpirationDays: parseInt(e.target.value) || 30 })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               min="1"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Срок хранения по умолчанию (дни)
             </label>
             <input
               type="number"
               value={settings.defaultExpirationDays}
               onChange={(e) => setSettings({ ...settings, defaultExpirationDays: parseInt(e.target.value) || 7 })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               min="1"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Кнопки срока хранения (через запятую)
             </label>
             <input
               type="text"
               value={expirationButtonsInput}
               onChange={(e) => setExpirationButtonsInput(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="1, 3, 7, 14, 30"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -321,14 +312,14 @@ export default function AdminPanel() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2 text-gray-700">
               Срок жизни сессии (дни)
             </label>
             <input
               type="number"
               value={settings.sessionDurationDays}
               onChange={(e) => setSettings({ ...settings, sessionDurationDays: parseInt(e.target.value) || 7 })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               min="1"
               max="365"
             />
@@ -339,7 +330,7 @@ export default function AdminPanel() {
 
           <button
             onClick={handleSave}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
           >
             Сохранить настройки
           </button>
