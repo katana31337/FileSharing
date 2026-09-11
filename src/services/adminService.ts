@@ -4,6 +4,7 @@ export interface AdminSettings {
   maxExpirationDays: number;
   defaultExpirationDays: number;
   expirationButtons: number[]; // Массив значений для кнопок (в днях)
+  sessionDurationDays: number; // Срок жизни сессии в днях
   adminLogin: string;
   adminPassword: string;
   adminSecretPath: string;
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
   maxExpirationDays: 30,
   defaultExpirationDays: 7,
   expirationButtons: [1, 3, 7, 14, 30], // Значения кнопок по умолчанию
+  sessionDurationDays: 7, // Срок жизни сессии по умолчанию (7 дней)
   adminLogin: '',
   adminPassword: '',
   adminSecretPath: '',

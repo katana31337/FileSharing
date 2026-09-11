@@ -268,6 +268,23 @@ export default function AdminPanel() {
             </p>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Срок жизни сессии (дни)
+            </label>
+            <input
+              type="number"
+              value={settings.sessionDurationDays}
+              onChange={(e) => setSettings({ ...settings, sessionDurationDays: parseInt(e.target.value) || 7 })}
+              className="w-full px-3 py-2 border rounded-lg"
+              min="1"
+              max="365"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Через сколько дней сессия пользователя истечёт (по умолчанию: 7 дней)
+            </p>
+          </div>
+
           <button
             onClick={handleSave}
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
