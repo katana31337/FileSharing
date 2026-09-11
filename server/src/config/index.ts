@@ -18,6 +18,9 @@ export interface Config {
   cors: {
     origin: string;
   };
+  storage: {
+    localPath: string;
+  };
 }
 
 export function loadConfig(): Config {
@@ -32,6 +35,9 @@ export function loadConfig(): Config {
     },
     cors: {
       origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    },
+    storage: {
+      localPath: process.env.STORAGE_PATH || '/app/uploads',
     },
   };
 }

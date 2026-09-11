@@ -26,7 +26,9 @@ async function main() {
   // Routes
   const routes = createRoutes(
     container.sessionHistoryController,
-    container.adminSettingsController
+    container.adminSettingsController,
+    container.fileController,
+    container.textController
   );
   app.use('/api', routes);
 

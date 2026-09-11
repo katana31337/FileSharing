@@ -2,15 +2,39 @@
 // Маршруты API
 // ==========================================
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { SessionHistoryController } from '../controllers/SessionHistoryController.js';
 import { AdminSettingsController } from '../controllers/AdminSettingsController.js';
+import { FileController } from '../controllers/FileController.js';
+import { TextController } from '../controllers/TextController.js';
+
+// Настройка multer для загрузки файлов в память
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100 MB
+  },
+});
 
 export function createRoutes(
   sessionHistoryController: SessionHistoryController,
-  adminSettingsController: AdminSettingsController
+  adminSettingsController: AdminSettingsController,
+  fileController: FileController,
+  textController: TextController
 ): Router {
   const router = Router();
+
+  // File routes
+  router.post('/files', upload.single('file'), fileController.upload.bind(fileController));
+  router.get('/files/:shortUrl', fileController.getInfo.bind(fileController));
+  router.get('/files/:shortUrl/download', fileController.download.bind(fileController));
+  router.delete('/files/:shortUrl', fileController.delete.bind(fileController));
+
+  // Text routes
+  router.post('/texts', textController.create.bind(textController));
+  router.get('/texts/:shortUrl', textController.get.bind(textController));
+  router.delete('/texts/:shortUrl', textController.delete.bind(textController));
 
   // Session history routes
   router.get('/session/history', sessionHistoryController.getHistory.bind(sessionHistoryController));
@@ -26,6 +50,11 @@ export function createRoutes(
   router.post('/admin/settings/reset', adminSettingsController.resetSettings.bind(adminSettingsController));
   router.post('/admin/settings/validate', adminSettingsController.validateCredentials.bind(adminSettingsController));
   router.get('/admin/settings/has-credentials', adminSettingsController.hasCredentials.bind(adminSettingsController));
+
+  // Health check
+  router.get('/health', (req: Request, res: Response) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   return router;
 }
