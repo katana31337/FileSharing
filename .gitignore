@@ -1,5 +1,10 @@
+```
+# Dependencies
 node_modules/
-.next/
-dist/
-build/
-*.log
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.
+```
