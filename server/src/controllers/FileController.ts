@@ -6,6 +6,12 @@
 import { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { FileService } from '../services/FileService.js';
+import { File as MulterFile } from 'multer';
+
+// Расширяем тип Request для multer
+interface RequestWithFile extends Request {
+  file?: MulterFile;
+}
 
 export class FileController {
   constructor(private fileService: FileService) {}
@@ -13,7 +19,7 @@ export class FileController {
   /**
    * POST /api/files — загрузка файла
    */
-  upload = async (req: Request, res: Response): Promise<void> => {
+  upload = async (req: RequestWithFile, res: Response): Promise<void> => {
     try {
       if (!req.file) {
         res.status(400).json({ error: 'Файл не предоставлен' });

@@ -3,9 +3,9 @@
 // ==========================================
 
 import { Pool } from 'pg';
-import { IAdminSettingsRepository, AdminSettings } from './AdminSettingsRepository.js';
+import { AdminSettings } from './AdminSettingsRepository.js';
 
-export class PostgresAdminSettingsRepository implements IAdminSettingsRepository {
+export class PostgresAdminSettingsRepository {
   constructor(private pool: Pool) {}
 
   async getSettings(): Promise<AdminSettings> {
@@ -21,6 +21,10 @@ export class PostgresAdminSettingsRepository implements IAdminSettingsRepository
       minExpirationDays: parseInt(settings.min_expiration_days || '1'),
       maxExpirationDays: parseInt(settings.max_expiration_days || '30'),
       defaultExpirationDays: parseInt(settings.default_expiration_days || '7'),
+      expirationButtons: JSON.parse(settings.expiration_buttons || '[1,3,7,14,30]'),
+      sessionDurationDays: parseInt(settings.session_duration_days || '7'),
+      adminLogin: settings.admin_login || '',
+      adminPassword: settings.admin_password || '',
       adminSecretPath: settings.admin_secret_path || 'admin',
       logo: settings.logo || '',
       logoType: (settings.logo_type as 'none' | 'file' | 'url') || 'none',
@@ -51,6 +55,18 @@ export class PostgresAdminSettingsRepository implements IAdminSettingsRepository
     if (settings.logoType !== undefined) {
       updates.push(['logo_type', settings.logoType]);
     }
+    if (settings.expirationButtons !== undefined) {
+      updates.push(['expiration_buttons', JSON.stringify(settings.expirationButtons)]);
+    }
+    if (settings.sessionDurationDays !== undefined) {
+      updates.push(['session_duration_days', settings.sessionDurationDays.toString()]);
+    }
+    if (settings.adminLogin !== undefined) {
+      updates.push(['admin_login', settings.adminLogin]);
+    }
+    if (settings.adminPassword !== undefined) {
+      updates.push(['admin_password', settings.adminPassword]);
+    }
 
     for (const [key, value] of updates) {
       await this.pool.query(
@@ -70,6 +86,10 @@ export class PostgresAdminSettingsRepository implements IAdminSettingsRepository
       ['min_expiration_days', '1'],
       ['max_expiration_days', '30'],
       ['default_expiration_days', '7'],
+      ['expiration_buttons', '[1,3,7,14,30]'],
+      ['session_duration_days', '7'],
+      ['admin_login', ''],
+      ['admin_password', ''],
       ['admin_secret_path', 'admin'],
       ['logo', ''],
       ['logo_type', 'none'],
