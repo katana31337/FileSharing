@@ -18,10 +18,10 @@ interface UploadedFile {
   stream?: Readable;
 }
 
-// Расширяем тип Request для multer
-interface RequestWithFile extends Request {
+// Тип Request с файлом через intersection
+type RequestWithFile = Omit<Request, 'file'> & {
   file?: UploadedFile;
-}
+};
 
 export class FileController {
   constructor(private fileService: FileService) {}
