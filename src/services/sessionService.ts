@@ -2,13 +2,13 @@
 // Сервис сессий пользователей
 // ============================================
 // Управляет сессиями через cookie
-// Привязывает историю загрузок к сессии
+// История хранится в PostgreSQL через API
 // ============================================
 
 import { getAdminSettings } from './adminService';
 
 const SESSION_COOKIE_NAME = 'fileshare_session_id';
-const SESSION_HISTORY_KEY = 'fileshare_session_history';
+const API_BASE_URL = '/api';
 
 export interface Session {
   id: string;
@@ -16,21 +16,28 @@ export interface Session {
   expiresAt: string;
 }
 
+export interface SessionFile {
+  id: string;
+  session_id: string;
+  short_url: string;
+  file_name: string;
+  file_size: number;
+  uploaded_at: string;
+  expires_at: string;
+}
+
+export interface SessionText {
+  id: string;
+  session_id: string;
+  short_url: string;
+  title: string;
+  uploaded_at: string;
+  expires_at: string;
+}
+
 export interface SessionHistory {
-  sessionId: string;
-  files: Array<{
-    shortUrl: string;
-    name: string;
-    size: number;
-    uploadedAt: string;
-    expiresAt: string;
-  }>;
-  texts: Array<{
-    shortUrl: string;
-    title: string;
-    uploadedAt: string;
-    expiresAt: string;
-  }>;
+  files: SessionFile[];
+  texts: SessionText[];
 }
 
 // ============================================
@@ -82,16 +89,15 @@ export function getCurrentSession(): Session {
   const sessionId = getCookie(SESSION_COOKIE_NAME);
   
   if (sessionId) {
-    // Загружаем существующую сессию
-    const sessionData = localStorage.getItem(`session_${sessionId}`);
-    if (sessionData) {
-      const session: Session = JSON.parse(sessionData);
-      
-      // Проверяем, не истекла ли сессия
-      if (new Date(session.expiresAt) > new Date()) {
-        return session;
-      }
-    }
+    // Сессия существует в cookie
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + (sessionDays * 24 * 60 * 60 * 1000));
+    
+    return {
+      id: sessionId,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
   }
   
   // Создаём новую сессию
@@ -105,17 +111,8 @@ export function getCurrentSession(): Session {
     expiresAt: expiresAt.toISOString(),
   };
   
-  // Сохраняем сессию
+  // Сохраняем сессию в cookie
   setCookie(SESSION_COOKIE_NAME, newSessionId, sessionDays);
-  localStorage.setItem(`session_${newSessionId}`, JSON.stringify(newSession));
-  
-  // Инициализируем историю для новой сессии
-  const history: SessionHistory = {
-    sessionId: newSessionId,
-    files: [],
-    texts: [],
-  };
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
   
   console.log(`%c[Session] 🆕 Создана новая сессия:`, 'color: green; font-weight: bold;', newSessionId);
   
@@ -123,100 +120,173 @@ export function getCurrentSession(): Session {
 }
 
 /**
- * Получить историю загрузок текущей сессии
+ * Получить историю загрузок текущей сессии из API
  */
-export function getSessionHistory(): SessionHistory {
+export async function getSessionHistory(): Promise<SessionHistory> {
   const session = getCurrentSession();
-  const historyData = localStorage.getItem(SESSION_HISTORY_KEY);
   
-  if (historyData) {
-    const history: SessionHistory = JSON.parse(historyData);
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history`, {
+      credentials: 'include', // Включаем cookie
+    });
     
-    // Проверяем, что история принадлежит текущей сессии
-    if (history.sessionId === session.id) {
-      return history;
+    if (!response.ok) {
+      throw new Error('Failed to fetch session history');
     }
+    
+    const history: SessionHistory = await response.json();
+    return history;
+  } catch (error) {
+    console.error('Error fetching session history:', error);
+    // Возвращаем пустую историю при ошибке
+    return { files: [], texts: [] };
   }
-  
-  // Создаём новую историю
-  const newHistory: SessionHistory = {
-    sessionId: session.id,
-    files: [],
-    texts: [],
-  };
-  
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(newHistory));
-  return newHistory;
 }
 
 /**
- * Добавить файл в историю сессии
+ * Добавить файл в историю сессии через API
  */
-export function addFileToHistory(file: {
+export async function addFileToHistory(file: {
   shortUrl: string;
   name: string;
   size: number;
   expiresAt: string;
-}): void {
-  const history = getSessionHistory();
+}): Promise<SessionFile | null> {
+  const session = getCurrentSession();
   
-  history.files.push({
-    ...file,
-    uploadedAt: new Date().toISOString(),
-  });
-  
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  console.log(`%c[Session] 📁 Файл добавлен в историю:`, 'color: blue;', file.shortUrl);
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history/file`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        shortUrl: file.shortUrl,
+        fileName: file.name,
+        fileSize: file.size,
+        expiresInDays: Math.ceil(
+          (new Date(file.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        ),
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to add file to history');
+    }
+    
+    const savedFile: SessionFile = await response.json();
+    console.log(`%c[Session] 📁 Файл добавлен в историю:`, 'color: blue;', savedFile.short_url);
+    return savedFile;
+  } catch (error) {
+    console.error('Error adding file to history:', error);
+    return null;
+  }
 }
 
 /**
- * Добавить текст в историю сессии
+ * Добавить текст в историю сессии через API
  */
-export function addTextToHistory(text: {
+export async function addTextToHistory(text: {
   shortUrl: string;
   title: string;
   expiresAt: string;
-}): void {
-  const history = getSessionHistory();
+}): Promise<SessionText | null> {
+  const session = getCurrentSession();
   
-  history.texts.push({
-    ...text,
-    uploadedAt: new Date().toISOString(),
-  });
-  
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  console.log(`%c[Session] 📝 Текст добавлен в историю:`, 'color: blue;', text.shortUrl);
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history/text`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        shortUrl: text.shortUrl,
+        title: text.title,
+        expiresInDays: Math.ceil(
+          (new Date(text.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        ),
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to add text to history');
+    }
+    
+    const savedText: SessionText = await response.json();
+    console.log(`%c[Session] 📝 Текст добавлен в историю:`, 'color: blue;', savedText.short_url);
+    return savedText;
+  } catch (error) {
+    console.error('Error adding text to history:', error);
+    return null;
+  }
 }
 
 /**
- * Удалить файл из истории сессии
+ * Удалить файл из истории сессии через API
  */
-export function removeFileFromHistory(shortUrl: string): void {
-  const history = getSessionHistory();
-  history.files = history.files.filter(f => f.shortUrl !== shortUrl);
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  console.log(`%c[Session] 🗑️ Файл удалён из истории:`, 'color: red;', shortUrl);
+export async function removeFileFromHistory(shortUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history/file/${shortUrl}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to remove file from history');
+    }
+    
+    console.log(`%c[Session] 🗑️ Файл удалён из истории:`, 'color: red;', shortUrl);
+    return true;
+  } catch (error) {
+    console.error('Error removing file from history:', error);
+    return false;
+  }
 }
 
 /**
- * Удалить текст из истории сессии
+ * Удалить текст из истории сессии через API
  */
-export function removeTextFromHistory(shortUrl: string): void {
-  const history = getSessionHistory();
-  history.texts = history.texts.filter(t => t.shortUrl !== shortUrl);
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  console.log(`%c[Session] 🗑️ Текст удалён из истории:`, 'color: red;', shortUrl);
+export async function removeTextFromHistory(shortUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history/text/${shortUrl}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to remove text from history');
+    }
+    
+    console.log(`%c[Session] 🗑️ Текст удалён из истории:`, 'color: red;', shortUrl);
+    return true;
+  } catch (error) {
+    console.error('Error removing text from history:', error);
+    return false;
+  }
 }
 
 /**
- * Очистить всю историю сессии
+ * Очистить всю историю сессии через API
  */
-export function clearSessionHistory(): void {
-  const history = getSessionHistory();
-  history.files = [];
-  history.texts = [];
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(history));
-  console.log(`%c[Session] 🧹 История сессии очищена`, 'color: orange;');
+export async function clearSessionHistory(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/session/history`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to clear session history');
+    }
+    
+    console.log(`%c[Session] 🧹 История сессии очищена`, 'color: orange;');
+    return true;
+  } catch (error) {
+    console.error('Error clearing session history:', error);
+    return false;
+  }
 }
 
 /**
@@ -228,25 +298,21 @@ export function destroySession(): void {
   // Удаляем cookie
   deleteCookie(SESSION_COOKIE_NAME);
   
-  // Удаляем данные сессии из localStorage
-  localStorage.removeItem(`session_${session.id}`);
-  localStorage.removeItem(SESSION_HISTORY_KEY);
-  
   console.log(`%c[Session] 🔒 Сессия завершена:`, 'color: red; font-weight: bold;', session.id);
 }
 
 /**
  * Получить информацию о сессии для отображения
  */
-export function getSessionInfo(): {
+export async function getSessionInfo(): Promise<{
   id: string;
   createdAt: string;
   expiresAt: string;
   filesCount: number;
   textsCount: number;
-} {
+}> {
   const session = getCurrentSession();
-  const history = getSessionHistory();
+  const history = await getSessionHistory();
   
   return {
     id: session.id,

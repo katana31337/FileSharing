@@ -7,7 +7,8 @@ import {
   getSessionHistory, 
   addFileToHistory,
   getSessionInfo,
-  type SessionHistory 
+  type SessionHistory,
+  type SessionFile
 } from '../services/sessionService';
 
 export default function HomePage() {
@@ -16,25 +17,31 @@ export default function HomePage() {
   const [expirationDays, setExpirationDays] = useState(settings.defaultExpirationDays);
   const [sessionHistory, setSessionHistory] = useState<SessionHistory | null>(null);
   const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   // Инициализация сессии при загрузке страницы
   useEffect(() => {
-    const session = getCurrentSession();
-    const history = getSessionHistory();
-    const info = getSessionInfo();
+    const initSession = async () => {
+      const session = getCurrentSession();
+      const history = await getSessionHistory();
+      const info = await getSessionInfo();
+      
+      setSessionHistory(history);
+      setSessionInfo(info);
+      setLoading(false);
+      
+      console.log('%c[HomePage] 🎯 Сессия инициализирована:', 'color: purple; font-weight: bold;', {
+        sessionId: session.id,
+        expiresAt: session.expiresAt,
+        filesCount: history.files.length,
+        textsCount: history.texts.length,
+      });
+    };
     
-    setSessionHistory(history);
-    setSessionInfo(info);
-    
-    console.log('%c[HomePage] 🎯 Сессия инициализирована:', 'color: purple; font-weight: bold;', {
-      sessionId: session.id,
-      expiresAt: session.expiresAt,
-      filesCount: history.files.length,
-      textsCount: history.texts.length,
-    });
+    initSession();
   }, []);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
     
     // Здесь будет логика загрузки файла на сервер
@@ -42,7 +49,7 @@ export default function HomePage() {
     const mockShortUrl = `test_${Date.now()}`;
     const expiresAt = new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000).toISOString();
     
-    addFileToHistory({
+    await addFileToHistory({
       shortUrl: mockShortUrl,
       name: file.name,
       size: file.size,
@@ -50,11 +57,24 @@ export default function HomePage() {
     });
     
     // Обновляем историю
-    setSessionHistory(getSessionHistory());
-    setSessionInfo(getSessionInfo());
+    const updatedHistory = await getSessionHistory();
+    const updatedInfo = await getSessionInfo();
+    
+    setSessionHistory(updatedHistory);
+    setSessionInfo(updatedInfo);
     
     console.log('Выбран файл:', file.name, 'Срок хранения:', expirationDays, 'дней');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+          <p className="text-center text-gray-500">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -93,17 +113,17 @@ export default function HomePage() {
             <div className="mt-8">
               <h2 className="text-xl font-bold mb-4">История загрузок</h2>
               <div className="space-y-2">
-                {sessionHistory.files.map((file, index) => (
+                {sessionHistory.files.map((file: SessionFile, index: number) => (
                   <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <p className="font-medium text-sm">{file.name}</p>
+                    <p className="font-medium text-sm">{file.file_name}</p>
                     <p className="text-xs text-gray-500">
-                      Загружен: {new Date(file.uploadedAt).toLocaleString('ru-RU')}
+                      Загружен: {new Date(file.uploaded_at).toLocaleString('ru-RU')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Истекает: {new Date(file.expiresAt).toLocaleDateString('ru-RU')}
+                      Истекает: {new Date(file.expires_at).toLocaleDateString('ru-RU')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Ссылка: /s/{file.shortUrl}
+                      Ссылка: /s/{file.short_url}
                     </p>
                   </div>
                 ))}
