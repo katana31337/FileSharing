@@ -28,8 +28,15 @@ npm run build
 ### Сессии пользователей
 - [🔐 Система сессий](SESSIONS.md) — полная документация по сессиям
 - [⚡ Быстрая настройка сессий](QUICK_SESSIONS.md) — краткая инструкция
-- [🔄 Миграция на PostgreSQL](MIGRATION_TO_POSTGRES.md) — история хранится в БД вместо localStorage
-- [⚡ Быстрая миграция](QUICK_MIGRATION.md) — краткая инструкция по миграции
+- [🔄 Миграция истории на PostgreSQL](MIGRATION_TO_POSTGRES.md) — история хранится в БД вместо localStorage
+- [⚡ Быстрая миграция истории](QUICK_MIGRATION.md) — краткая инструкция по миграции истории
+
+### Настройки админ-панели
+- [🔄 Миграция настроек в PostgreSQL](MIGRATION_ADMIN_SETTINGS.md) — настройки хранятся в БД вместо localStorage
+- [⚡ Быстрая миграция настроек](QUICK_MIGRATION_ADMIN.md) — краткая инструкция по миграции настроек
+
+### Полная миграция
+- [🎉 Полная миграция в PostgreSQL](FULL_MIGRATION.md) — все данные перенесены из localStorage в БД
 
 ### Хранение файлов
 - [📦 Хранение файлов в /dataStore](STORAGE.md) — настройка внешнего хранилища

@@ -81,8 +81,8 @@ function deleteCookie(name: string): void {
 /**
  * Получить текущую сессию или создать новую
  */
-export function getCurrentSession(): Session {
-  const settings = getAdminSettings();
+export async function getCurrentSession(): Promise<Session> {
+  const settings = await getAdminSettings();
   const sessionDays = settings.sessionDurationDays || 7;
   
   // Проверяем существующую сессию
@@ -123,7 +123,7 @@ export function getCurrentSession(): Session {
  * Получить историю загрузок текущей сессии из API
  */
 export async function getSessionHistory(): Promise<SessionHistory> {
-  const session = getCurrentSession();
+  const session = await getCurrentSession();
   
   try {
     const response = await fetch(`${API_BASE_URL}/session/history`, {
@@ -152,7 +152,7 @@ export async function addFileToHistory(file: {
   size: number;
   expiresAt: string;
 }): Promise<SessionFile | null> {
-  const session = getCurrentSession();
+  const session = await getCurrentSession();
   
   try {
     const response = await fetch(`${API_BASE_URL}/session/history/file`, {
@@ -192,7 +192,7 @@ export async function addTextToHistory(text: {
   title: string;
   expiresAt: string;
 }): Promise<SessionText | null> {
-  const session = getCurrentSession();
+  const session = await getCurrentSession();
   
   try {
     const response = await fetch(`${API_BASE_URL}/session/history/text`, {
@@ -292,8 +292,8 @@ export async function clearSessionHistory(): Promise<boolean> {
 /**
  * Удалить сессию (logout)
  */
-export function destroySession(): void {
-  const session = getCurrentSession();
+export async function destroySession(): Promise<void> {
+  const session = await getCurrentSession();
   
   // Удаляем cookie
   deleteCookie(SESSION_COOKIE_NAME);
@@ -311,7 +311,7 @@ export async function getSessionInfo(): Promise<{
   filesCount: number;
   textsCount: number;
 }> {
-  const session = getCurrentSession();
+  const session = await getCurrentSession();
   const history = await getSessionHistory();
   
   return {

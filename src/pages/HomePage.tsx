@@ -12,17 +12,21 @@ import {
 } from '../services/sessionService';
 
 export default function HomePage() {
-  const settings = getAdminSettings();
+  const [settings, setSettings] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [expirationDays, setExpirationDays] = useState(settings.defaultExpirationDays);
+  const [expirationDays, setExpirationDays] = useState(7);
   const [sessionHistory, setSessionHistory] = useState<SessionHistory | null>(null);
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Инициализация сессии при загрузке страницы
+  // Инициализация сессии и настроек при загрузке страницы
   useEffect(() => {
-    const initSession = async () => {
-      const session = getCurrentSession();
+    const init = async () => {
+      const loadedSettings = await getAdminSettings();
+      setSettings(loadedSettings);
+      setExpirationDays(loadedSettings.defaultExpirationDays);
+      
+      const session = await getCurrentSession();
       const history = await getSessionHistory();
       const info = await getSessionInfo();
       
@@ -38,7 +42,7 @@ export default function HomePage() {
       });
     };
     
-    initSession();
+    init();
   }, []);
 
   const handleFileSelect = async (file: File) => {

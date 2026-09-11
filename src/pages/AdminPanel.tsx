@@ -1,44 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   getAdminSettings, 
   saveAdminSettings, 
   formatFileSize, 
   parseFileSize,
+  validateCredentials,
+  hasCredentials,
   type AdminSettings 
 } from '../services/adminService';
 
 export default function AdminPanel() {
   const { secretPath } = useParams<{ secretPath: string }>();
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<AdminSettings>(getAdminSettings());
-  const [maxFileSizeInput, setMaxFileSizeInput] = useState(
-    formatFileSize(settings.maxFileSize)
-  );
-  const [expirationButtonsInput, setExpirationButtonsInput] = useState(
-    settings.expirationButtons.join(', ')
-  );
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [maxFileSizeInput, setMaxFileSizeInput] = useState('');
+  const [expirationButtonsInput, setExpirationButtonsInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
-  const [needsSetup, setNeedsSetup] = useState(!settings.adminLogin);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Загрузка настроек при монтировании
+  useEffect(() => {
+    const init = async () => {
+      const loadedSettings = await getAdminSettings();
+      setSettings(loadedSettings);
+      setMaxFileSizeInput(formatFileSize(loadedSettings.maxFileSize));
+      setExpirationButtonsInput(loadedSettings.expirationButtons.join(', '));
+      
+      // Проверяем, настроены ли учётные данные
+      const hasCreds = await hasCredentials();
+      setNeedsSetup(!hasCreds);
+      setLoading(false);
+    };
+    
+    init();
+  }, []);
 
   // Проверка секретного пути
-  if (secretPath !== settings.adminSecretPath && settings.adminSecretPath) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (settings && secretPath !== settings.adminSecretPath && settings.adminSecretPath) {
+      navigate('/');
+    }
+  }, [settings, secretPath, navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login === settings.adminLogin && password === settings.adminPassword) {
+    const isValid = await validateCredentials(login, password);
+    if (isValid) {
       setIsAuthenticated(true);
     } else {
       alert('Неверный логин или пароль');
     }
   };
 
-  const handleSetup = (e: React.FormEvent) => {
+  const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (login.length < 3) {
       alert('Логин должен содержать минимум 3 символа');
@@ -65,16 +83,22 @@ export default function AdminPanel() {
       return;
     }
 
-    saveAdminSettings({
-      adminLogin: login,
-      adminPassword: password,
-      adminSecretPath: secretPath || '',
-    });
-    setSettings({ ...settings, adminLogin: login, adminPassword: password, adminSecretPath: secretPath || '' });
-    setNeedsSetup(false);
+    try {
+      const updatedSettings = await saveAdminSettings({
+        adminLogin: login,
+        adminPassword: password,
+        adminSecretPath: secretPath || '',
+      });
+      setSettings(updatedSettings);
+      setNeedsSetup(false);
+    } catch (error) {
+      alert('Ошибка при сохранении учётных данных');
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!settings) return;
+
     const maxFileSize = parseFileSize(maxFileSizeInput);
     if (maxFileSize === 0) {
       alert('Неверный формат размера файла. Используйте формат: 100MB, 1GB');
@@ -103,16 +127,44 @@ export default function AdminPanel() {
       return;
     }
 
-    const newSettings = {
-      ...settings,
-      maxFileSize,
-      expirationButtons: buttons,
-    };
+    try {
+      const newSettings = {
+        ...settings,
+        maxFileSize,
+        expirationButtons: buttons,
+      };
 
-    saveAdminSettings(newSettings);
-    setSettings(newSettings);
-    alert('Настройки сохранены!');
+      const updatedSettings = await saveAdminSettings(newSettings);
+      setSettings(updatedSettings);
+      alert('Настройки сохранены!');
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('Ошибка при сохранении настроек');
+      }
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-lg">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-lg text-red-600">Ошибка загрузки настроек</p>
+        </div>
+      </div>
+    );
+  }
 
   // Первичная настройка
   if (needsSetup) {

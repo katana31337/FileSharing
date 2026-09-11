@@ -24,7 +24,10 @@ async function main() {
   app.use(cookieParser());
 
   // Routes
-  const routes = createRoutes(container.sessionHistoryController);
+  const routes = createRoutes(
+    container.sessionHistoryController,
+    container.adminSettingsController
+  );
   app.use('/api', routes);
 
   // Health check

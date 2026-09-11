@@ -1,4 +1,5 @@
-import { getAdminSettings } from '../services/adminService';
+import { useState, useEffect } from 'react';
+import { getAdminSettings, type AdminSettings } from '../services/adminService';
 
 interface ExpirationSelectorProps {
   value: number;
@@ -6,7 +7,16 @@ interface ExpirationSelectorProps {
 }
 
 export default function ExpirationSelector({ value, onChange }: ExpirationSelectorProps) {
-  const settings = getAdminSettings();
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
+
+  useEffect(() => {
+    getAdminSettings().then(setSettings);
+  }, []);
+
+  if (!settings) {
+    return <div>Загрузка...</div>;
+  }
+
   const buttons = settings.expirationButtons;
 
   return (
@@ -15,7 +25,7 @@ export default function ExpirationSelector({ value, onChange }: ExpirationSelect
         Срок хранения
       </label>
       <div className="flex flex-wrap gap-2">
-        {buttons.map((days) => (
+        {buttons.map((days: number) => (
           <button
             key={days}
             onClick={() => onChange(days)}

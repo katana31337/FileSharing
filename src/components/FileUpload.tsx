@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, AlertCircle } from 'lucide-react';
-import { getAdminSettings, formatFileSize } from '../services/adminService';
+import { getAdminSettings, formatFileSize, type AdminSettings } from '../services/adminService';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -8,12 +8,16 @@ interface FileUploadProps {
 
 export default function FileUpload({ onFileSelect }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const settings = getAdminSettings();
+
+  useEffect(() => {
+    getAdminSettings().then(setSettings);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !settings) return;
 
     // Проверка размера файла
     if (file.size > settings.maxFileSize) {
@@ -38,6 +42,10 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
   const handleClick = () => {
     fileInputRef.current?.click();
   };
+
+  if (!settings) {
+    return <div>Загрузка...</div>;
+  }
 
   return (
     <div className="w-full">
