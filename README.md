@@ -228,8 +228,8 @@ npm run build
 ### Публикация образов
 
 ```bash
-# Запустить скрипт публикации
-sudo bash publish-docker.sh katana31337 1.0.16
+# Запустить скрипт публикации (замените yourusername на ваш логин Docker Hub)
+sudo bash publish-docker.sh yourusername 1.0.16
 ```
 
 Скрипт автоматически:
