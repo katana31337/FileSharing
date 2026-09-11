@@ -1,19 +1,18 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ShareView from './pages/ShareView';
 import AdminPanel from './pages/AdminPanel';
+import BackendStatus from './components/BackendStatus';
 
-function App() {
+export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
+      <BackendStatus />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/s/:shortUrl" element={<ShareView />} />
-        {/* Динамический роут для админки - путь проверяется внутри компонента */}
         <Route path="/:secretPath" element={<AdminPanel />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
-
-export default App;

@@ -1,18 +1,24 @@
 // ==========================================
-// Сервис настроек админки
+// Сервис для работы с настройками админ-панели
 // ==========================================
 
-import { IAdminSettingsRepository, AdminSettings } from '../repositories/AdminSettingsRepository.js';
+import { AdminSettingsRepository, AdminSettings } from '../repositories/AdminSettingsRepository';
 
 export class AdminSettingsService {
-  constructor(private repository: IAdminSettingsRepository) {}
+  constructor(private repository: AdminSettingsRepository) {}
 
+  /**
+   * Получить все настройки
+   */
   async getSettings(): Promise<AdminSettings> {
-    return this.repository.getSettings();
+    return this.repository.getAllSettings();
   }
 
+  /**
+   * Обновить настройки
+   */
   async updateSettings(settings: Partial<AdminSettings>): Promise<AdminSettings> {
-    // Валидация значений
+    // Валидация
     if (settings.maxFileSize !== undefined && settings.maxFileSize < 1024) {
       throw new Error('Максимальный размер файла должен быть не менее 1 KB');
     }
@@ -32,7 +38,7 @@ export class AdminSettingsService {
     }
 
     if (settings.defaultExpirationDays !== undefined) {
-      const currentSettings = await this.repository.getSettings();
+      const currentSettings = await this.repository.getAllSettings();
       const minDays = settings.minExpirationDays ?? currentSettings.minExpirationDays;
       const maxDays = settings.maxExpirationDays ?? currentSettings.maxExpirationDays;
 
@@ -41,10 +47,46 @@ export class AdminSettingsService {
       }
     }
 
-    return this.repository.updateSettings(settings);
+    if (settings.expirationButtons !== undefined) {
+      if (settings.expirationButtons.length === 0) {
+        throw new Error('Должна быть хотя бы одна кнопка срока хранения');
+      }
+    }
+
+    if (settings.sessionDurationDays !== undefined) {
+      if (settings.sessionDurationDays < 1 || settings.sessionDurationDays > 365) {
+        throw new Error('Срок жизни сессии должен быть от 1 до 365 дней');
+      }
+    }
+
+    // Обновляем настройки
+    await this.repository.updateAllSettings(settings);
+
+    // Возвращаем обновлённые настройки
+    return this.repository.getAllSettings();
   }
 
-  async resetSettings(): Promise<AdminSettings> {
-    return this.repository.resetSettings();
+  /**
+   * Сбросить все настройки к значениям по умолчанию
+   */
+  async resetToDefaults(): Promise<AdminSettings> {
+    await this.repository.resetToDefaults();
+    return this.repository.getAllSettings();
+  }
+
+  /**
+   * Проверить учётные данные администратора
+   */
+  async validateCredentials(login: string, password: string): Promise<boolean> {
+    const settings = await this.repository.getAllSettings();
+    return settings.adminLogin === login && settings.adminPassword === password;
+  }
+
+  /**
+   * Проверить, настроены ли учётные данные
+   */
+  async hasCredentials(): Promise<boolean> {
+    const settings = await this.repository.getAllSettings();
+    return settings.adminLogin !== '' && settings.adminPassword !== '';
   }
 }

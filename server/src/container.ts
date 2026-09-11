@@ -1,86 +1,55 @@
 // ==========================================
-// DI Container — внедрение зависимостей
-// (SOLID: DIP — все зависимости через контейнер)
+// DI контейнер для внедрения зависимостей
 // ==========================================
 
 import { Pool } from 'pg';
-import { AppConfig } from './config/index.js';
-import { PostgresFileRepository, PostgresTextRepository } from './repositories/postgres.js';
-import { PostgresAdminSettingsRepository } from './repositories/PostgresAdminSettingsRepository.js';
-import { IFileRepository, ITextRepository } from './repositories/interfaces.js';
-import { IAdminSettingsRepository } from './repositories/AdminSettingsRepository.js';
-import { IStorageProvider } from './storage/interfaces.js';
-import { LocalStorageProvider } from './storage/LocalStorageProvider.js';
-import { FileService } from './services/FileService.js';
-import { TextService } from './services/TextService.js';
+import { Config } from './config/index.js';
+import { SessionHistoryRepository } from './repositories/SessionHistoryRepository.js';
+import { SessionHistoryService } from './services/SessionHistoryService.js';
+import { SessionHistoryController } from './controllers/SessionHistoryController.js';
+import { AdminSettingsRepository } from './repositories/AdminSettingsRepository.js';
 import { AdminSettingsService } from './services/AdminSettingsService.js';
-import { FileController } from './controllers/FileController.js';
-import { TextController } from './controllers/TextController.js';
 import { AdminSettingsController } from './controllers/AdminSettingsController.js';
 
 export interface Container {
-  fileRepository: IFileRepository;
-  textRepository: ITextRepository;
-  adminSettingsRepository: IAdminSettingsRepository;
-  storageProvider: IStorageProvider;
-  fileService: FileService;
-  textService: TextService;
-  adminSettingsService: AdminSettingsService;
-  fileController: FileController;
-  textController: TextController;
-  adminSettingsController: AdminSettingsController;
   dbPool: Pool;
+  sessionHistoryRepository: SessionHistoryRepository;
+  sessionHistoryService: SessionHistoryService;
+  sessionHistoryController: SessionHistoryController;
+  adminSettingsRepository: AdminSettingsRepository;
+  adminSettingsService: AdminSettingsService;
+  adminSettingsController: AdminSettingsController;
 }
 
-export function createContainer(config: AppConfig): Container {
-  // Database
+export function createContainer(config: Config): Container {
+  // Database connection pool
   const dbPool = new Pool({
-    host: config.database.host,
-    port: config.database.port,
-    user: config.database.user,
-    password: config.database.password,
-    database: config.database.database,
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.user,
+    password: config.db.password,
+    database: config.db.database,
   });
 
   // Repositories
-  const fileRepository = new PostgresFileRepository(dbPool);
-  const textRepository = new PostgresTextRepository(dbPool);
-  const adminSettingsRepository = new PostgresAdminSettingsRepository(dbPool);
-
-  // Storage Provider (Strategy Pattern)
-  let storageProvider: IStorageProvider;
-  switch (config.storage.provider) {
-    case 'local':
-      storageProvider = new LocalStorageProvider(config.storage.localPath);
-      break;
-    // case 's3':
-    //   storageProvider = new S3StorageProvider(config.s3);
-    //   break;
-    default:
-      storageProvider = new LocalStorageProvider(config.storage.localPath);
-  }
+  const sessionHistoryRepository = new SessionHistoryRepository(dbPool);
+  const adminSettingsRepository = new AdminSettingsRepository(dbPool);
 
   // Services
-  const fileService = new FileService(fileRepository, storageProvider);
-  const textService = new TextService(textRepository);
+  const sessionHistoryService = new SessionHistoryService(sessionHistoryRepository);
   const adminSettingsService = new AdminSettingsService(adminSettingsRepository);
 
   // Controllers
-  const fileController = new FileController(fileService);
-  const textController = new TextController(textService);
+  const sessionHistoryController = new SessionHistoryController(sessionHistoryService);
   const adminSettingsController = new AdminSettingsController(adminSettingsService);
 
   return {
-    fileRepository,
-    textRepository,
-    adminSettingsRepository,
-    storageProvider,
-    fileService,
-    textService,
-    adminSettingsService,
-    fileController,
-    textController,
-    adminSettingsController,
     dbPool,
+    sessionHistoryRepository,
+    sessionHistoryService,
+    sessionHistoryController,
+    adminSettingsRepository,
+    adminSettingsService,
+    adminSettingsController,
   };
 }

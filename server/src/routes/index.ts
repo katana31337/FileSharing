@@ -1,51 +1,31 @@
 // ==========================================
-// Routes — определение маршрутов API
+// Маршруты API
 // ==========================================
 
 import { Router } from 'express';
-import multer from 'multer';
-import { FileController } from '../controllers/FileController.js';
-import { TextController } from '../controllers/TextController.js';
+import { SessionHistoryController } from '../controllers/SessionHistoryController.js';
 import { AdminSettingsController } from '../controllers/AdminSettingsController.js';
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100 MB
-  },
-});
-
 export function createRoutes(
-  fileController: FileController,
-  textController: TextController,
-  adminSettingsController: AdminSettingsController,
+  sessionHistoryController: SessionHistoryController,
+  adminSettingsController: AdminSettingsController
 ): Router {
   const router = Router();
 
-  // === File routes ===
-  router.post('/files', upload.single('file'), fileController.upload);
-  router.get('/files/:shortUrl', fileController.getInfo);
-  router.get('/files/:shortUrl/download', fileController.download);
-  router.delete('/files/:shortUrl', fileController.delete);
+  // Session history routes
+  router.get('/session/history', sessionHistoryController.getHistory.bind(sessionHistoryController));
+  router.post('/session/history/file', sessionHistoryController.addFile.bind(sessionHistoryController));
+  router.post('/session/history/text', sessionHistoryController.addText.bind(sessionHistoryController));
+  router.delete('/session/history/file/:shortUrl', sessionHistoryController.removeFile.bind(sessionHistoryController));
+  router.delete('/session/history/text/:shortUrl', sessionHistoryController.removeText.bind(sessionHistoryController));
+  router.delete('/session/history', sessionHistoryController.clearHistory.bind(sessionHistoryController));
 
-  // === Text routes ===
-  router.post('/texts', textController.create);
-  router.get('/texts/:shortUrl', textController.get);
-  router.delete('/texts/:shortUrl', textController.delete);
-
-  // === Admin settings routes ===
-  router.get('/admin/settings', adminSettingsController.getSettings);
-  router.put('/admin/settings', adminSettingsController.updateSettings);
-  router.post('/admin/settings/reset', adminSettingsController.resetSettings);
-
-  // === Health check ===
-  router.get('/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
-    });
-  });
+  // Admin settings routes
+  router.get('/admin/settings', adminSettingsController.getSettings.bind(adminSettingsController));
+  router.put('/admin/settings', adminSettingsController.updateSettings.bind(adminSettingsController));
+  router.post('/admin/settings/reset', adminSettingsController.resetSettings.bind(adminSettingsController));
+  router.post('/admin/settings/validate', adminSettingsController.validateCredentials.bind(adminSettingsController));
+  router.get('/admin/settings/has-credentials', adminSettingsController.hasCredentials.bind(adminSettingsController));
 
   return router;
 }
